@@ -14,7 +14,247 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          owner_id: string
+          project_id: string | null
+          type: Database["public"]["Enums"]["attendance_type"]
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          owner_id: string
+          project_id?: string | null
+          type: Database["public"]["Enums"]["attendance_type"]
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          owner_id?: string
+          project_id?: string | null
+          type?: Database["public"]["Enums"]["attendance_type"]
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          owner_id: string
+          paid_on: string
+          worker_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          owner_id: string
+          paid_on?: string
+          worker_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          owner_id?: string
+          paid_on?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_updates: {
+        Row: {
+          created_at: string
+          id: string
+          is_milestone: boolean
+          note: string
+          owner_id: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_milestone?: boolean
+          note: string
+          owner_id: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_milestone?: boolean
+          note?: string
+          owner_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_updates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_workers: {
+        Row: {
+          assigned_at: string
+          owner_id: string
+          project_id: string
+          worker_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          owner_id: string
+          project_id: string
+          worker_id: string
+        }
+        Update: {
+          assigned_at?: string
+          owner_id?: string
+          project_id?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_workers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_workers_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          client: string | null
+          contract_value: number | null
+          created_at: string
+          expected_end: string | null
+          id: string
+          location: string | null
+          name: string
+          owner_id: string
+          progress_pct: number
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+        }
+        Insert: {
+          client?: string | null
+          contract_value?: number | null
+          created_at?: string
+          expected_end?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          owner_id: string
+          progress_pct?: number
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Update: {
+          client?: string | null
+          contract_value?: number | null
+          created_at?: string
+          expected_end?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          owner_id?: string
+          progress_pct?: number
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workers: {
+        Row: {
+          address: string | null
+          created_at: string
+          daily_wage: number
+          full_name: string
+          id: string
+          joining_date: string
+          mobile: string | null
+          owner_id: string
+          status: Database["public"]["Enums"]["worker_status"]
+          updated_at: string
+          worker_type: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          daily_wage?: number
+          full_name: string
+          id?: string
+          joining_date?: string
+          mobile?: string | null
+          owner_id: string
+          status?: Database["public"]["Enums"]["worker_status"]
+          updated_at?: string
+          worker_type?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          daily_wage?: number
+          full_name?: string
+          id?: string
+          joining_date?: string
+          mobile?: string | null
+          owner_id?: string
+          status?: Database["public"]["Enums"]["worker_status"]
+          updated_at?: string
+          worker_type?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +263,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      attendance_type: "absent" | "half" | "full" | "overtime"
+      project_status: "planning" | "active" | "on_hold" | "completed"
+      worker_status: "active" | "inactive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +392,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      attendance_type: ["absent", "half", "full", "overtime"],
+      project_status: ["planning", "active", "on_hold", "completed"],
+      worker_status: ["active", "inactive"],
+    },
   },
 } as const
