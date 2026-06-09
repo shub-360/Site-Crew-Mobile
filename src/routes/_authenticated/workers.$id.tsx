@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { getWorkerSummary } from "@/lib/worker-summary.functions";
-import { deleteWorker } from "@/lib/workers.functions";
+import { deleteWorker, updateWorker } from "@/lib/workers.functions";
 import { getWorkerAttendance } from "@/lib/attendance.functions";
 import { listPayments, recordPayment } from "@/lib/payments.functions";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
 import { ATTENDANCE_LABEL } from "@/lib/wages";
@@ -81,9 +82,12 @@ function WorkerPage() {
             </div>
             {w.address && <p className="text-xs text-muted-foreground mt-1">{w.address}</p>}
           </div>
-          <Button variant="ghost" size="icon" onClick={() => confirm("Delete this worker?") && del.mutate()}>
-            <Trash2 className="size-4 text-destructive" />
-          </Button>
+          <div className="flex gap-1">
+            <EditWorkerDialog worker={w} />
+            <Button variant="ghost" size="icon" onClick={() => confirm("Delete this worker?") && del.mutate()}>
+              <Trash2 className="size-4 text-destructive" />
+            </Button>
+          </div>
         </div>
       </Card>
 
