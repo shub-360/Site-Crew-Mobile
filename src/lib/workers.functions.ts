@@ -47,13 +47,21 @@ export const createWorker = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await context.supabase.from("activity_log").insert({
+      owner_id: context.userId,
+      actor_id: context.userId,
+      entity_type: "worker",
+      entity_id: row.id,
+      action: "worker_added",
+      description: `Added worker ${row.full_name}`,
+    });
     return row;
   });
 
 export const updateWorker = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    workerInput.extend({ id: z.string().uuid() }).parse(d),
+    workerInput.partial().extend({ id: z.string().uuid() }).parse(d),
   )
   .handler(async ({ context, data }) => {
     const { id, ...patch } = data;
@@ -64,6 +72,15 @@ export const updateWorker = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await context.supabase.from("activity_log").insert({
+      owner_id: context.userId,
+      actor_id: context.userId,
+      entity_type: "worker",
+      entity_id: id,
+      action: "worker_updated",
+      description: `Updated worker ${row.full_name}`,
+      meta: patch as any,
+    });
     return row;
   });
 
@@ -71,7 +88,17 @@ export const deleteWorker = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
+    const { data: w } = await context.supabase
+      .from("workers").select("full_name").eq("id", data.id).maybeSingle();
     const { error } = await context.supabase.from("workers").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await context.supabase.from("activity_log").insert({
+      owner_id: context.userId,
+      actor_id: context.userId,
+      entity_type: "worker",
+      entity_id: data.id,
+      action: "worker_deleted",
+      description: `Deleted worker ${w?.full_name ?? ""}`.trim(),
+    });
     return { ok: true };
   });

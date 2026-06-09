@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          meta: Json | null
+          owner_id: string
+          project_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          meta?: Json | null
+          owner_id: string
+          project_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          meta?: Json | null
+          owner_id?: string
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           created_at: string
@@ -97,6 +144,62 @@ export type Database = {
           },
         ]
       }
+      project_quotations: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          is_current: boolean
+          note: string | null
+          owner_id: string
+          project_id: string
+          updated_at: string
+          uploaded_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_current?: boolean
+          note?: string | null
+          owner_id: string
+          project_id: string
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_current?: boolean
+          note?: string | null
+          owner_id?: string
+          project_id?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_quotations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_updates: {
         Row: {
           created_at: string
@@ -104,6 +207,7 @@ export type Database = {
           is_milestone: boolean
           note: string
           owner_id: string
+          photo_path: string | null
           project_id: string
         }
         Insert: {
@@ -112,6 +216,7 @@ export type Database = {
           is_milestone?: boolean
           note: string
           owner_id: string
+          photo_path?: string | null
           project_id: string
         }
         Update: {
@@ -120,6 +225,7 @@ export type Database = {
           is_milestone?: boolean
           note?: string
           owner_id?: string
+          photo_path?: string | null
           project_id?: string
         }
         Relationships: [

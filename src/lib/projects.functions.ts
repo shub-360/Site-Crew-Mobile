@@ -28,24 +28,29 @@ export const getProject = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
-    const [{ data: project, error: pErr }, { data: assignments, error: aErr }, { data: updates, error: uErr }] =
-      await Promise.all([
-        context.supabase.from("projects").select("*").eq("id", data.id).maybeSingle(),
-        context.supabase
-          .from("project_workers")
-          .select("worker_id, workers(id, full_name, worker_type, daily_wage, status)")
-          .eq("project_id", data.id),
-        context.supabase
-          .from("project_updates")
-          .select("*")
-          .eq("project_id", data.id)
-          .order("created_at", { ascending: false }),
-      ]);
-    if (pErr) throw new Error(pErr.message);
-    if (aErr) throw new Error(aErr.message);
-    if (uErr) throw new Error(uErr.message);
-    if (!project) throw new Error("Project not found");
-    return { project, assignments: assignments ?? [], updates: updates ?? [] };
+    const sb = context.supabase;
+    const [pRes, aRes, uRes, qRes, lRes] = await Promise.all([
+      sb.from("projects").select("*").eq("id", data.id).maybeSingle(),
+      sb.from("project_workers")
+        .select("worker_id, workers(id, full_name, worker_type, daily_wage, status)")
+        .eq("project_id", data.id),
+      sb.from("project_updates").select("*").eq("project_id", data.id).order("created_at", { ascending: false }),
+      sb.from("project_quotations").select("*").eq("project_id", data.id).order("version", { ascending: false }),
+      sb.from("activity_log").select("*").eq("project_id", data.id).order("created_at", { ascending: false }).limit(50),
+    ]);
+    if (pRes.error) throw new Error(pRes.error.message);
+    if (aRes.error) throw new Error(aRes.error.message);
+    if (uRes.error) throw new Error(uRes.error.message);
+    if (qRes.error) throw new Error(qRes.error.message);
+    if (lRes.error) throw new Error(lRes.error.message);
+    if (!pRes.data) throw new Error("Project not found");
+    return {
+      project: pRes.data,
+      assignments: aRes.data ?? [],
+      updates: uRes.data ?? [],
+      quotations: qRes.data ?? [],
+      activity: lRes.data ?? [],
+    };
   });
 
 export const createProject = createServerFn({ method: "POST" })
@@ -122,6 +127,7 @@ export const addProjectUpdate = createServerFn({ method: "POST" })
         project_id: z.string().uuid(),
         note: z.string().min(1).max(2000),
         is_milestone: z.boolean().default(false),
+        photo_path: z.string().max(500).optional().nullable(),
       })
       .parse(d),
   )
@@ -130,5 +136,25 @@ export const addProjectUpdate = createServerFn({ method: "POST" })
       .from("project_updates")
       .insert({ ...data, owner_id: context.userId });
     if (error) throw new Error(error.message);
+    await context.supabase.from("activity_log").insert({
+      owner_id: context.userId,
+      actor_id: context.userId,
+      entity_type: "project_update",
+      project_id: data.project_id,
+      action: data.is_milestone ? "milestone_added" : "note_added",
+      description: data.note.slice(0, 200),
+      meta: data.photo_path ? { photo_path: data.photo_path } : null,
+    });
     return { ok: true };
+  });
+
+export const getSignedFileUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ file_path: z.string().min(1) }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: signed, error } = await context.supabase.storage
+      .from("project-files")
+      .createSignedUrl(data.file_path, 60 * 60);
+    if (error) throw new Error(error.message);
+    return { url: signed.signedUrl };
   });

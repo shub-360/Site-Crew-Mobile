@@ -81,7 +81,7 @@ export const generateMonthlyReport = createServerFn({ method: "POST" })
         "Full Days": full,
         "Overtime Days": ot,
         "Absent Days": absent,
-        "Total Earnings": Math.round(earnings * 100) / 100,
+        "Total Salary": Math.round(earnings * 100) / 100,
         "Amount Paid": Math.round(paid * 100) / 100,
         "Remaining Balance": Math.round((earnings - paid) * 100) / 100,
       };
