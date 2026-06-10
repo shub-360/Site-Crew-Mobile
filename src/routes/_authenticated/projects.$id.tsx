@@ -109,9 +109,12 @@ function ProjectPage() {
               )}
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => confirm("Delete project?") && del.mutate()}>
-            <Trash2 className="size-4 text-destructive" />
-          </Button>
+          <div className="flex gap-1">
+            <EditProjectButton project={project} />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => confirm("Delete project?") && del.mutate()}>
+              <Trash2 className="size-4 text-destructive" />
+            </Button>
+          </div>
         </div>
       </Card>
 
