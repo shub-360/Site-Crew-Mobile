@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { listWorkers, createWorker, deleteWorker } from "@/lib/workers.functions";
-import { Plus, Search, ChevronRight, Trash2 } from "lucide-react";
+import { listWorkers, createWorker } from "@/lib/workers.functions";
+import { Plus, Search, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
+import { EditWorkerButton } from "@/components/edit-worker-dialog";
 
 export const Route = createFileRoute("/_authenticated/workers")({
   component: WorkersPage,
