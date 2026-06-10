@@ -283,6 +283,7 @@ export type Database = {
           id: string
           location: string | null
           name: string
+          notes: string | null
           owner_id: string
           progress_pct: number
           start_date: string | null
@@ -297,6 +298,7 @@ export type Database = {
           id?: string
           location?: string | null
           name: string
+          notes?: string | null
           owner_id: string
           progress_pct?: number
           start_date?: string | null
@@ -311,6 +313,7 @@ export type Database = {
           id?: string
           location?: string | null
           name?: string
+          notes?: string | null
           owner_id?: string
           progress_pct?: number
           start_date?: string | null
