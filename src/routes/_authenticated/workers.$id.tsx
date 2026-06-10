@@ -84,8 +84,8 @@ function WorkerPage() {
             {w.address && <p className="text-xs text-muted-foreground mt-1">{w.address}</p>}
           </div>
           <div className="flex gap-1">
-            <EditWorkerDialog worker={w} />
-            <Button variant="ghost" size="icon" onClick={() => confirm("Delete this worker?") && del.mutate()}>
+            <EditWorkerButton worker={w} />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => confirm("Delete this worker?") && del.mutate()}>
               <Trash2 className="size-4 text-destructive" />
             </Button>
           </div>
