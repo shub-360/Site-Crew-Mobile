@@ -36,27 +36,32 @@ function ProjectsPage() {
           <p className="p-6 text-sm text-muted-foreground text-center">No projects yet.</p>
         )}
         {projects.map((p) => (
-          <Link key={p.id} to="/projects/$id" params={{ id: p.id }} className="block p-4 hover:bg-accent/40 transition-colors">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium truncate">{p.name}</p>
-                  <Badge variant={p.status === "active" ? "default" : "secondary"}>{STATUS_LABEL[p.status]}</Badge>
+          <div key={p.id} className="relative group">
+            <Link to="/projects/$id" params={{ id: p.id }} className="block p-4 pr-14 hover:bg-accent/40 transition-colors">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium truncate">{p.name}</p>
+                    <Badge variant={p.status === "active" ? "default" : "secondary"}>{STATUS_LABEL[p.status]}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {p.client ? `${p.client} · ` : ""}{p.location || "—"}
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Progress value={p.progress_pct} className="h-1.5 flex-1" />
+                    <span className="text-xs text-muted-foreground tabular-nums w-9 text-right">{p.progress_pct}%</span>
+                  </div>
+                  {Number(p.contract_value) > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">{formatCurrency(p.contract_value)}</p>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {p.client ? `${p.client} · ` : ""}{p.location || "—"}
-                </p>
-                <div className="mt-2 flex items-center gap-2">
-                  <Progress value={p.progress_pct} className="h-1.5 flex-1" />
-                  <span className="text-xs text-muted-foreground tabular-nums w-9 text-right">{p.progress_pct}%</span>
-                </div>
-                {Number(p.contract_value) > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">{formatCurrency(p.contract_value)}</p>
-                )}
+                <ChevronRight className="size-4 text-muted-foreground mt-1" />
               </div>
-              <ChevronRight className="size-4 text-muted-foreground mt-1" />
+            </Link>
+            <div className="absolute right-3 top-3">
+              <EditProjectButton project={p} />
             </div>
-          </Link>
+          </div>
         ))}
       </Card>
     </div>
