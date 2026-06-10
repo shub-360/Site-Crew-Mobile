@@ -14,6 +14,7 @@ import { listProjects, createProject } from "@/lib/projects.functions";
 import { Plus, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
+import { EditProjectButton } from "@/components/edit-project-dialog";
 
 export const Route = createFileRoute("/_authenticated/projects")({
   component: ProjectsPage,
