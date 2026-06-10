@@ -41,23 +41,27 @@ function WorkersPage() {
           <p className="p-6 text-sm text-muted-foreground text-center">No workers yet. Add your first worker.</p>
         )}
         {filtered.map((w) => (
-          <Link
-            key={w.id}
-            to="/workers/$id"
-            params={{ id: w.id }}
-            className="flex items-center justify-between p-4 hover:bg-accent/40 transition-colors tap-target"
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-medium truncate">{w.full_name}</p>
-                {w.status === "inactive" && <Badge variant="secondary">Inactive</Badge>}
+          <div key={w.id} className="relative group">
+            <Link
+              to="/workers/$id"
+              params={{ id: w.id }}
+              className="flex items-center justify-between p-4 pr-20 hover:bg-accent/40 transition-colors tap-target"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-medium truncate">{w.full_name}</p>
+                  {w.status === "inactive" && <Badge variant="secondary">Inactive</Badge>}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {w.worker_type || "Worker"} · {formatCurrency(w.daily_wage)}/day
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {w.worker_type || "Worker"} · {formatCurrency(w.daily_wage)}/day
-              </p>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </Link>
+            <div className="absolute right-10 top-1/2 -translate-y-1/2">
+              <EditWorkerButton worker={w} />
             </div>
-            <ChevronRight className="size-4 text-muted-foreground" />
-          </Link>
+          </div>
         ))}
       </Card>
     </div>
