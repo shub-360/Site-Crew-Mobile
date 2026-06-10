@@ -11,13 +11,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { getWorkerSummary } from "@/lib/worker-summary.functions";
-import { deleteWorker, updateWorker } from "@/lib/workers.functions";
+import { deleteWorker } from "@/lib/workers.functions";
 import { getWorkerAttendance } from "@/lib/attendance.functions";
 import { listPayments, recordPayment } from "@/lib/payments.functions";
-import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
 import { ATTENDANCE_LABEL } from "@/lib/wages";
+import { EditWorkerButton } from "@/components/edit-worker-dialog";
 
 export const Route = createFileRoute("/_authenticated/workers/$id")({
   component: WorkerPage,
@@ -83,8 +84,8 @@ function WorkerPage() {
             {w.address && <p className="text-xs text-muted-foreground mt-1">{w.address}</p>}
           </div>
           <div className="flex gap-1">
-            <EditWorkerDialog worker={w} />
-            <Button variant="ghost" size="icon" onClick={() => confirm("Delete this worker?") && del.mutate()}>
+            <EditWorkerButton worker={w} />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => confirm("Delete this worker?") && del.mutate()}>
               <Trash2 className="size-4 text-destructive" />
             </Button>
           </div>
@@ -199,87 +200,3 @@ function PaymentDialog({ workerId }: { workerId: string }) {
   );
 }
 
-function EditWorkerDialog({ worker }: { worker: any }) {
-  const [open, setOpen] = useState(false);
-  const qc = useQueryClient();
-  const fn = useServerFn(updateWorker);
-  const m = useMutation({
-    mutationFn: (d: any) => fn({ data: d }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["worker-summary", worker.id] });
-      qc.invalidateQueries({ queryKey: ["workers"] });
-      toast.success("Worker updated");
-      setOpen(false);
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon"><Pencil className="size-4" /></Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Edit worker</DialogTitle></DialogHeader>
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const f = new FormData(e.currentTarget);
-            m.mutate({
-              id: worker.id,
-              full_name: f.get("full_name"),
-              mobile: f.get("mobile") || null,
-              address: f.get("address") || null,
-              worker_type: f.get("worker_type") || null,
-              joining_date: f.get("joining_date") || worker.joining_date,
-              daily_wage: Number(f.get("daily_wage") || 0),
-              status: f.get("status") || "active",
-            });
-          }}
-        >
-          <div className="space-y-1.5">
-            <Label htmlFor="ef_full_name">Full name</Label>
-            <Input id="ef_full_name" name="full_name" required defaultValue={worker.full_name} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="ef_mobile">Mobile</Label>
-              <Input id="ef_mobile" name="mobile" type="tel" defaultValue={worker.mobile ?? ""} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="ef_worker_type">Type</Label>
-              <Input id="ef_worker_type" name="worker_type" defaultValue={worker.worker_type ?? ""} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="ef_daily_wage">Daily wage</Label>
-              <Input id="ef_daily_wage" name="daily_wage" type="number" min="0" step="1" required defaultValue={worker.daily_wage} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="ef_joining_date">Joining date</Label>
-              <Input id="ef_joining_date" name="joining_date" type="date" defaultValue={worker.joining_date} />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="ef_address">Address</Label>
-            <Input id="ef_address" name="address" defaultValue={worker.address ?? ""} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Status</Label>
-            <Select name="status" defaultValue={worker.status}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={m.isPending}>{m.isPending ? "Saving…" : "Save changes"}</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}

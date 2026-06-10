@@ -27,6 +27,7 @@ import {
 import { listWorkers } from "@/lib/workers.functions";
 import { recordQuotation, deleteQuotation } from "@/lib/quotations.functions";
 import { uploadProjectFile } from "@/lib/upload";
+import { EditProjectButton } from "@/components/edit-project-dialog";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   component: ProjectPage,
@@ -107,10 +108,16 @@ function ProjectPage() {
                 <span className="text-muted-foreground">{formatCurrency(project.contract_value)}</span>
               )}
             </div>
+            {project.notes && (
+              <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap border-t pt-3">{project.notes}</p>
+            )}
           </div>
-          <Button variant="ghost" size="icon" onClick={() => confirm("Delete project?") && del.mutate()}>
-            <Trash2 className="size-4 text-destructive" />
-          </Button>
+          <div className="flex gap-1">
+            <EditProjectButton project={project} />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => confirm("Delete project?") && del.mutate()}>
+              <Trash2 className="size-4 text-destructive" />
+            </Button>
+          </div>
         </div>
       </Card>
 

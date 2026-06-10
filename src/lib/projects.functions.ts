@@ -11,6 +11,7 @@ const projectInput = z.object({
   contract_value: z.number().min(0).max(1_000_000_000).default(0),
   status: z.enum(["planning", "active", "on_hold", "completed"]).default("planning"),
   progress_pct: z.number().int().min(0).max(100).default(0),
+  notes: z.string().max(5000).optional().nullable(),
 });
 
 export const listProjects = createServerFn({ method: "GET" })
