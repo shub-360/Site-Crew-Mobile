@@ -108,6 +108,9 @@ function ProjectPage() {
                 <span className="text-muted-foreground">{formatCurrency(project.contract_value)}</span>
               )}
             </div>
+            {project.notes && (
+              <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap border-t pt-3">{project.notes}</p>
+            )}
           </div>
           <div className="flex gap-1">
             <EditProjectButton project={project} />
