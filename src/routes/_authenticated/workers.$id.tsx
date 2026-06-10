@@ -11,13 +11,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { getWorkerSummary } from "@/lib/worker-summary.functions";
-import { deleteWorker, updateWorker } from "@/lib/workers.functions";
+import { deleteWorker } from "@/lib/workers.functions";
 import { getWorkerAttendance } from "@/lib/attendance.functions";
 import { listPayments, recordPayment } from "@/lib/payments.functions";
-import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
 import { ATTENDANCE_LABEL } from "@/lib/wages";
+import { EditWorkerButton } from "@/components/edit-worker-dialog";
 
 export const Route = createFileRoute("/_authenticated/workers/$id")({
   component: WorkerPage,
