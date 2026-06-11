@@ -487,3 +487,13 @@ function AssignDialog({ unassigned, onAssign }: { unassigned: any[]; onAssign: (
     </Dialog>
   );
 }
+
+function MiniStat({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" | "warning" }) {
+  const toneClass = { default: "text-primary", success: "text-[var(--success)]", warning: "text-[var(--warning)]" }[tone];
+  return (
+    <div className="rounded-md border p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`text-lg font-semibold tabular-nums mt-1 ${toneClass}`}>{value}</p>
+    </div>
+  );
+}
