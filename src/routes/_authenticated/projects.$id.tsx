@@ -158,6 +158,35 @@ function ProjectPage() {
         </div>
       </Card>
 
+      {stats && (
+        <section>
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Project statistics</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <MiniStat label="Assigned" value={formatNumber(stats.assignedCount)} />
+            <MiniStat label="Present today" value={formatNumber(stats.presentToday)} tone="success" />
+            <MiniStat label="Absent today" value={formatNumber(stats.absentToday)} tone="warning" />
+            <MiniStat label="Month labour cost" value={formatCurrency(stats.monthCost)} />
+          </div>
+        </section>
+      )}
+
+      {stats && stats.breakdown.length > 0 && (
+        <section>
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Labour cost breakdown</h3>
+          <Card className="divide-y">
+            {stats.breakdown.map((r: any) => (
+              <div key={r.worker_id} className="p-3 flex items-center justify-between text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{r.name}</p>
+                  <p className="text-xs text-muted-foreground">{r.type || "Worker"} · {r.days} days</p>
+                </div>
+                <span className="font-semibold tabular-nums text-primary">{formatCurrency(r.earnings)}</span>
+              </div>
+            ))}
+          </Card>
+        </section>
+      )}
+
       <QuotationsSection projectId={id} quotations={quotations} currentQuote={currentQuote} />
 
       <section>
