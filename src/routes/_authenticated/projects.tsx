@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { listProjects, createProject } from "@/lib/projects.functions";
-import { Plus, ChevronRight } from "lucide-react";
+import { createProject } from "@/lib/projects.functions";
+import { listProjectsWithStats } from "@/lib/stats.functions";
+import { Plus, ChevronRight, Users, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
 import { EditProjectButton } from "@/components/edit-project-dialog";
@@ -25,8 +26,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function ProjectsPage() {
-  const fn = useServerFn(listProjects);
-  const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: () => fn() });
+  const fn = useServerFn(listProjectsWithStats);
+  const { data: projects = [] } = useQuery({ queryKey: ["projects", "stats"], queryFn: () => fn() });
 
   return (
     <div className="space-y-4">
@@ -35,7 +36,7 @@ function ProjectsPage() {
         {projects.length === 0 && (
           <p className="p-6 text-sm text-muted-foreground text-center">No projects yet.</p>
         )}
-        {projects.map((p) => (
+        {projects.map((p: any) => (
           <div key={p.id} className="relative group">
             <Link to="/projects/$id" params={{ id: p.id }} className="block p-4 pr-14 hover:bg-accent/40 transition-colors">
               <div className="flex items-start justify-between gap-3">
@@ -51,9 +52,11 @@ function ProjectsPage() {
                     <Progress value={p.progress_pct} className="h-1.5 flex-1" />
                     <span className="text-xs text-muted-foreground tabular-nums w-9 text-right">{p.progress_pct}%</span>
                   </div>
-                  {Number(p.contract_value) > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">{formatCurrency(p.contract_value)}</p>
-                  )}
+                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground tabular-nums">
+                    <span className="inline-flex items-center gap-1"><Users className="size-3" />{p.assignedCount} workers</span>
+                    <span className="inline-flex items-center gap-1"><Banknote className="size-3" />{formatCurrency(p.monthCost)} / mo</span>
+                    {p.presentToday > 0 && <span className="text-[var(--success)]">{p.presentToday} present today</span>}
+                  </div>
                 </div>
                 <ChevronRight className="size-4 text-muted-foreground mt-1" />
               </div>
