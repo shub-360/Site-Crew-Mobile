@@ -10,41 +10,35 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getWorkerSummary } from "@/lib/worker-summary.functions";
+import { getWorkerDetailStats } from "@/lib/stats.functions";
 import { deleteWorker } from "@/lib/workers.functions";
-import { getWorkerAttendance } from "@/lib/attendance.functions";
 import { listPayments, recordPayment } from "@/lib/payments.functions";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, HardHat } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
-import { ATTENDANCE_LABEL } from "@/lib/wages";
 import { EditWorkerButton } from "@/components/edit-worker-dialog";
 
 export const Route = createFileRoute("/_authenticated/workers/$id")({
   component: WorkerPage,
 });
 
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 function WorkerPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
 
-  const summaryFn = useServerFn(getWorkerSummary);
-  const attFn = useServerFn(getWorkerAttendance);
+  const statsFn = useServerFn(getWorkerDetailStats);
   const paymentsFn = useServerFn(listPayments);
   const delFn = useServerFn(deleteWorker);
 
-  const now = new Date();
-  const from = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().slice(0, 10);
-  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-
-  const { data: summary } = useQuery({
-    queryKey: ["worker-summary", id],
-    queryFn: () => summaryFn({ data: { worker_id: id } }),
-  });
-  const { data: att = [] } = useQuery({
-    queryKey: ["worker-att", id],
-    queryFn: () => attFn({ data: { worker_id: id, from, to } }),
+  const { data: stats } = useQuery({
+    queryKey: ["worker-stats", id, year, month],
+    queryFn: () => statsFn({ data: { worker_id: id, year, month } }),
   });
   const { data: payments = [] } = useQuery({
     queryKey: ["payments", id],
@@ -61,8 +55,8 @@ function WorkerPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  if (!summary) return null;
-  const w = summary.worker;
+  if (!stats) return null;
+  const w = stats.worker;
 
   return (
     <div className="space-y-4">
@@ -92,14 +86,72 @@ function WorkerPage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Stat label="Month present" value={String(summary.monthPresent)} />
-        <Stat label="Month OT days" value={String(summary.monthOvertime)} />
-        <Stat label="Month earnings" value={formatCurrency(summary.monthEarnings)} />
-        <Stat label="Total paid" value={formatCurrency(summary.totalPaid)} />
-        <Stat label="Lifetime earnings" value={formatCurrency(summary.lifetimeEarnings)} />
-        <Stat label="Balance due" value={formatCurrency(summary.balance)} highlight />
-      </div>
+      <section>
+        <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Assigned projects</h3>
+        <Card className="divide-y">
+          {stats.assignments.length === 0 && (
+            <p className="p-4 text-sm text-muted-foreground">Not assigned to any project.</p>
+          )}
+          {stats.assignments.map((a: any) => (
+            <Link
+              key={a.project_id}
+              to="/projects/$id"
+              params={{ id: a.project_id }}
+              className="p-3 flex items-center justify-between hover:bg-accent/40 transition-colors"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <HardHat className="size-4 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{a.projects?.name ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">Assigned {new Date(a.assigned_at).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </Card>
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground">Attendance statistics</h3>
+          <div className="flex gap-2">
+            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+              <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m, i) => <SelectItem key={i} value={String(i+1)}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map((y) =>
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Stat label="Full days" value={String(stats.counts.full)} />
+          <Stat label="Half days" value={String(stats.counts.half)} />
+          <Stat label="Overtime days" value={String(stats.counts.overtime)} />
+          <Stat label="Absent" value={String(stats.counts.absent)} />
+          <Stat label="Total attendance" value={String(stats.presentDays)} />
+          <Stat label="Daily wage" value={formatCurrency(w.daily_wage)} />
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Financial summary</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <Stat label="Month earnings" value={formatCurrency(stats.monthEarnings)} />
+          <Stat label="Month paid" value={formatCurrency(stats.monthPaid)} />
+          <Stat label="Lifetime earnings" value={formatCurrency(stats.lifetimeEarnings)} />
+          <Stat label="Total paid" value={formatCurrency(stats.lifetimePaid)} />
+          <div className="col-span-2">
+            <Stat label="Pending balance" value={formatCurrency(stats.lifetimeBalance)} highlight />
+          </div>
+        </div>
+      </section>
 
       <section>
         <div className="flex items-center justify-between mb-2">
@@ -114,19 +166,6 @@ function WorkerPage() {
                 <p className="font-medium">{formatCurrency(p.amount)}</p>
                 <p className="text-xs text-muted-foreground">{p.paid_on}{p.note ? ` · ${p.note}` : ""}</p>
               </div>
-            </div>
-          ))}
-        </Card>
-      </section>
-
-      <section>
-        <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Recent attendance</h3>
-        <Card className="divide-y">
-          {att.length === 0 && <p className="p-4 text-sm text-muted-foreground">No attendance recorded yet.</p>}
-          {att.slice(0, 30).map((a) => (
-            <div key={a.date} className="p-3 flex items-center justify-between text-sm">
-              <span>{a.date}</span>
-              <Badge variant={a.type === "absent" ? "secondary" : "default"}>{ATTENDANCE_LABEL[a.type as keyof typeof ATTENDANCE_LABEL]}</Badge>
             </div>
           ))}
         </Card>
@@ -152,7 +191,7 @@ function PaymentDialog({ workerId }: { workerId: string }) {
     mutationFn: (d: any) => fn({ data: d }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments", workerId] });
-      qc.invalidateQueries({ queryKey: ["worker-summary", workerId] });
+      qc.invalidateQueries({ queryKey: ["worker-stats", workerId] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Payment recorded");
       setOpen(false);
@@ -199,4 +238,3 @@ function PaymentDialog({ workerId }: { workerId: string }) {
     </Dialog>
   );
 }
-
