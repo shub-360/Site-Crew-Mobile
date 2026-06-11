@@ -47,9 +47,11 @@ function ProjectPage() {
   const assignFn = useServerFn(assignWorker);
   const unassignFn = useServerFn(unassignWorker);
   const workersFn = useServerFn(listWorkers);
+  const statsFn = useServerFn(getProjectStats);
 
   const { data } = useQuery({ queryKey: ["project", id], queryFn: () => getFn({ data: { id } }) });
   const { data: workers = [] } = useQuery({ queryKey: ["workers"], queryFn: () => workersFn() });
+  const { data: stats } = useQuery({ queryKey: ["project-stats", id], queryFn: () => statsFn({ data: { id } }) });
 
   const update = useMutation({
     mutationFn: (patch: any) => updateFn({ data: { id, ...patch } }),
