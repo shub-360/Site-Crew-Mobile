@@ -25,8 +25,10 @@ import {
   getSignedFileUrl,
 } from "@/lib/projects.functions";
 import { listWorkers } from "@/lib/workers.functions";
+import { getProjectStats } from "@/lib/stats.functions";
 import { recordQuotation, deleteQuotation } from "@/lib/quotations.functions";
 import { uploadProjectFile } from "@/lib/upload";
+import { formatNumber } from "@/lib/format";
 import { EditProjectButton } from "@/components/edit-project-dialog";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
@@ -45,9 +47,11 @@ function ProjectPage() {
   const assignFn = useServerFn(assignWorker);
   const unassignFn = useServerFn(unassignWorker);
   const workersFn = useServerFn(listWorkers);
+  const statsFn = useServerFn(getProjectStats);
 
   const { data } = useQuery({ queryKey: ["project", id], queryFn: () => getFn({ data: { id } }) });
   const { data: workers = [] } = useQuery({ queryKey: ["workers"], queryFn: () => workersFn() });
+  const { data: stats } = useQuery({ queryKey: ["project-stats", id], queryFn: () => statsFn({ data: { id } }) });
 
   const update = useMutation({
     mutationFn: (patch: any) => updateFn({ data: { id, ...patch } }),
@@ -74,11 +78,17 @@ function ProjectPage() {
 
   const assign = useMutation({
     mutationFn: (worker_id: string) => assignFn({ data: { project_id: id, worker_id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["project", id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project", id] });
+      qc.invalidateQueries({ queryKey: ["project-stats", id] });
+    },
   });
   const unassign = useMutation({
     mutationFn: (worker_id: string) => unassignFn({ data: { project_id: id, worker_id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["project", id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project", id] });
+      qc.invalidateQueries({ queryKey: ["project-stats", id] });
+    },
   });
 
   if (!data) return null;
@@ -147,6 +157,35 @@ function ProjectPage() {
           </Select>
         </div>
       </Card>
+
+      {stats && (
+        <section>
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Project statistics</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <MiniStat label="Assigned" value={formatNumber(stats.assignedCount)} />
+            <MiniStat label="Present today" value={formatNumber(stats.presentToday)} tone="success" />
+            <MiniStat label="Absent today" value={formatNumber(stats.absentToday)} tone="warning" />
+            <MiniStat label="Month labour cost" value={formatCurrency(stats.monthCost)} />
+          </div>
+        </section>
+      )}
+
+      {stats && stats.breakdown.length > 0 && (
+        <section>
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Labour cost breakdown</h3>
+          <Card className="divide-y">
+            {stats.breakdown.map((r: any) => (
+              <div key={r.worker_id} className="p-3 flex items-center justify-between text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{r.name}</p>
+                  <p className="text-xs text-muted-foreground">{r.type || "Worker"} · {r.days} days</p>
+                </div>
+                <span className="font-semibold tabular-nums text-primary">{formatCurrency(r.earnings)}</span>
+              </div>
+            ))}
+          </Card>
+        </section>
+      )}
 
       <QuotationsSection projectId={id} quotations={quotations} currentQuote={currentQuote} />
 
@@ -446,5 +485,15 @@ function AssignDialog({ unassigned, onAssign }: { unassigned: any[]; onAssign: (
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function MiniStat({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" | "warning" }) {
+  const toneClass = { default: "text-primary", success: "text-[var(--success)]", warning: "text-[var(--warning)]" }[tone];
+  return (
+    <div className="rounded-md border p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`text-lg font-semibold tabular-nums mt-1 ${toneClass}`}>{value}</p>
+    </div>
   );
 }

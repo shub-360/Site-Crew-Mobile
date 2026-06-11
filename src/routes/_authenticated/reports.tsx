@@ -6,11 +6,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { generateMonthlyReport } from "@/lib/reports.functions";
 import { listProjects } from "@/lib/projects.functions";
 import { listWorkers } from "@/lib/workers.functions";
+import { getAttendanceMatrix, listProjectsWithStats } from "@/lib/stats.functions";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   component: ReportsPage,
@@ -28,9 +31,16 @@ function ReportsPage() {
   const projectsFn = useServerFn(listProjects);
   const workersFn = useServerFn(listWorkers);
   const genFn = useServerFn(generateMonthlyReport);
+  const matrixFn = useServerFn(getAttendanceMatrix);
+  const projStatsFn = useServerFn(listProjectsWithStats);
 
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: () => projectsFn() });
   const { data: workers = [] } = useQuery({ queryKey: ["workers"], queryFn: () => workersFn() });
+  const { data: matrix } = useQuery({
+    queryKey: ["att-matrix", year, month, projectId],
+    queryFn: () => matrixFn({ data: { year, month, project_id: projectId === "all" ? null : projectId } }),
+  });
+  const { data: projStats = [] } = useQuery({ queryKey: ["projects", "stats"], queryFn: () => projStatsFn() });
 
   const gen = useMutation({
     mutationFn: () =>
@@ -61,17 +71,7 @@ function ReportsPage() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-5 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
-            <FileSpreadsheet className="size-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold">Monthly Excel report</h2>
-            <p className="text-xs text-muted-foreground">Attendance, earnings, payments, balance — one click.</p>
-          </div>
-        </div>
-
+      <Card className="p-4 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Month</Label>
@@ -91,35 +91,118 @@ function ReportsPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label>Project</Label>
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All projects</SelectItem>
+                {projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Worker</Label>
+            <Select value={workerId} onValueChange={setWorkerId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All workers</SelectItem>
+                {workers.map((w) => <SelectItem key={w.id} value={w.id}>{w.full_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-
-        <div className="space-y-1.5">
-          <Label>Project (optional)</Label>
-          <Select value={projectId} onValueChange={setProjectId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All projects</SelectItem>
-              {projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Worker (optional)</Label>
-          <Select value={workerId} onValueChange={setWorkerId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All workers</SelectItem>
-              {workers.map((w) => <SelectItem key={w.id} value={w.id}>{w.full_name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Button onClick={() => gen.mutate()} disabled={gen.isPending} className="w-full tap-target">
-          <Download className="size-4" />
-          {gen.isPending ? "Generating…" : "Download XLSX"}
-        </Button>
       </Card>
+
+      <Tabs defaultValue="summary">
+        <TabsList className="grid grid-cols-3 w-full">
+          <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar</TabsTrigger>
+          <TabsTrigger value="cost">Labour cost</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="summary" className="mt-4">
+          <Card className="p-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
+                <FileSpreadsheet className="size-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold">Workforce summary (XLSX)</h2>
+                <p className="text-xs text-muted-foreground">Attendance, earnings, payments, balance.</p>
+              </div>
+            </div>
+            <Button onClick={() => gen.mutate()} disabled={gen.isPending} className="w-full tap-target">
+              <Download className="size-4" />
+              {gen.isPending ? "Generating…" : "Download XLSX"}
+            </Button>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="calendar" className="mt-4">
+          <Card className="p-3 overflow-x-auto">
+            {!matrix || matrix.rows.length === 0 ? (
+              <p className="p-4 text-sm text-muted-foreground text-center">No attendance for this period.</p>
+            ) : (
+              <table className="text-xs border-collapse">
+                <thead>
+                  <tr>
+                    <th className="sticky left-0 bg-background text-left p-2 border-b">Worker</th>
+                    {Array.from({ length: matrix.days }, (_, i) => i + 1).map((d) => (
+                      <th key={d} className="p-1.5 border-b text-center font-medium w-7">{d}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {matrix.rows.map((r: any) => (
+                    <tr key={r.worker_id} className="border-b">
+                      <td className="sticky left-0 bg-background p-2 font-medium whitespace-nowrap">{r.name}</td>
+                      {r.cells.map((c: string, i: number) => (
+                        <td key={i} className={`text-center p-1.5 tabular-nums ${cellClass(c)}`}>{cellLabel(c)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground px-2">P = present (full), H = half day, O = overtime, A = absent.</p>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="cost" className="mt-4">
+          <Card className="divide-y">
+            {projStats.length === 0 && <p className="p-4 text-sm text-muted-foreground text-center">No projects.</p>}
+            {projStats.map((p: any) => (
+              <div key={p.id} className="p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{p.name}</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      {p.assignedCount} workers · avg {formatCurrency(p.assignedCount > 0 ? Math.round(p.monthCost / p.assignedCount) : 0)}/worker
+                    </p>
+                  </div>
+                  <span className="font-semibold tabular-nums text-primary">{formatCurrency(p.monthCost)}</span>
+                </div>
+              </div>
+            ))}
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
+}
+
+function cellLabel(c: string) {
+  if (c === "full") return "P";
+  if (c === "half") return "H";
+  if (c === "overtime") return "O";
+  if (c === "absent") return "A";
+  return "";
+}
+function cellClass(c: string) {
+  if (c === "full") return "bg-primary/15 text-primary font-medium";
+  if (c === "half") return "bg-[var(--warning)]/15 text-[var(--warning)] font-medium";
+  if (c === "overtime") return "bg-[var(--success)]/15 text-[var(--success)] font-medium";
+  if (c === "absent") return "bg-destructive/10 text-destructive";
+  return "text-muted-foreground";
 }
