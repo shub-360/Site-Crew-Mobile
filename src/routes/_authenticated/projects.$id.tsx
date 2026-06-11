@@ -25,8 +25,10 @@ import {
   getSignedFileUrl,
 } from "@/lib/projects.functions";
 import { listWorkers } from "@/lib/workers.functions";
+import { getProjectStats } from "@/lib/stats.functions";
 import { recordQuotation, deleteQuotation } from "@/lib/quotations.functions";
 import { uploadProjectFile } from "@/lib/upload";
+import { formatNumber } from "@/lib/format";
 import { EditProjectButton } from "@/components/edit-project-dialog";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
