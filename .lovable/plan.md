@@ -1,76 +1,53 @@
+# SiteCrew Contractor Upgrade Plan
 
-# Workforce & Project Management — Build Plan
+Goal: turn SiteCrew into a project-first workforce system without changing the visual style, navigation, auth, or wage logic. Reuse the existing `wages.ts` calculation, current cards, dialogs, and color tokens.
 
-A mobile-first responsive web app for civil/interior contractors to manage workers, attendance, wages, projects, and monthly reports. Single contractor (admin) per account, secured with email/password login.
+## What's already there (reused as-is)
+- `workers`, `projects`, `project_workers`, `attendance` (with `project_id`), `payments`, `activity_log`, `project_quotations`, `project_updates` tables.
+- `wageFor()` logic (Full=1x, Half=0.5x, Overtime=1.5x — preserved).
+- Existing routes: Dashboard, Workers, Projects, Attendance, Reports. No new top-level navigation.
 
-## Design
+## 1. Data layer
+- No migration needed (schema already supports project-linked attendance via `attendance.project_id`).
+- Add indexes only if missing on `attendance(project_id, date)` and `project_workers(project_id)` (migration if needed).
 
-- Black & white foundation, deep blue accent (e.g. `oklch(0.45 0.18 260)`).
-- Clean, minimal, high contrast — Notion/Linear/Stripe inspired.
-- Subtle glassmorphism only on bottom nav, dashboard cards, and modals.
-- Large touch targets (min 44px), mobile-first layout, persistent bottom nav.
-- Inter/system font stack, generous spacing, rounded-xl cards.
+## 2. New / extended server functions
+- `projects.functions.ts`
+  - `listProjectsWithStats()` → for each project: assigned count, present-today count, monthly labour cost.
+  - `getProjectStats(id)` → assigned, present today, absent today, monthly labour cost, per-worker breakdown (days, earnings).
+- `workers.functions.ts`
+  - `listWorkersWithStats()` → assigned projects (names), monthly attendance count, monthly earnings.
+  - `getWorkerStats(id, month)` → full/half/OT/absent counts, total earnings, paid, pending, active assignments.
+- `dashboard.functions.ts`
+  - Extend `getDashboard` with: activeProjects, totalWorkers, presentToday, monthLabourCost, insights (top project by cost, most active project, top earning worker, lowest attendance worker), per-project site status array.
+- `attendance.functions.ts`
+  - `getProjectAssignedWorkers(project_id)` → only active assignments.
+  - `getAttendanceForProjectDay(project_id, date)`.
+  - Existing `upsertAttendance` already accepts `project_id` — enforce it from UI.
+- `reports.functions.ts`
+  - Filters: month, year, project_id?, worker_id?.
+  - Workforce summary, attendance calendar matrix (P/H/O/A), labour cost report per project.
 
-## App Structure (TanStack Start routes)
+## 3. UI changes (extend existing components, same styling)
+- **Dashboard (`_authenticated/index.tsx`)**: replace metric cards with Active Projects / Total Workers / Today's Attendance / Monthly Labour Cost. Add "Site Status" list (one card per active project: assigned, present today, monthly cost). Add Insights section (4 small cards). Keep existing Quick Actions, add Add Project + Assign Worker shortcuts.
+- **Workers list**: each card adds assigned project chips, this-month attendance count, this-month earnings.
+- **Worker detail**: add "Assigned Projects" section, "Attendance Statistics" (F/H/OT/A counts), "Financial Summary" (earnings / paid / pending). Current-month default with month picker.
+- **Projects list**: cards show assigned worker count + monthly labour cost alongside progress.
+- **Project detail**: add Assigned Workers section with Assign/Remove (bottom-sheet dialog of available workers), Project Statistics (assigned / present today / absent today / monthly cost), Labour Cost Breakdown table (worker, days, earnings).
+- **Attendance flow**: turn into 2-step project-first flow.
+  - Step 1: project picker (cards of active projects).
+  - Step 2: show only that project's assigned workers; mark F/H/OT/A. Saves with `project_id`.
+  - Back button to switch project.
+- **Reports**: add Project + Worker filter dropdowns alongside existing month/year. Three report tabs/sections: Workforce Summary, Attendance Calendar (matrix), Labour Cost per Project. XLSX export reuses existing styled exporter.
 
-```
-/auth                    Login / sign up
-/_authenticated/
-  index                  Dashboard
-  attendance             Today's attendance roster (one-tap marking)
-  workers                Worker list + add/edit
-  workers/$id            Worker profile + wage + attendance history
-  projects               Project list + add
-  projects/$id           Project detail + progress + assigned workers
-  reports                Monthly Excel export with filters
-```
+## 4. Preserved
+- Auth, Supabase client setup, routes, root layout, design tokens, mobile-first Tailwind classes, existing dialogs and edit buttons, wage formula, XLSX header style.
 
-Bottom nav (mobile): Dashboard · Attendance · Workers · Projects · Reports.
+## Technical notes
+- All new aggregations are server-side via `createServerFn` + `requireSupabaseAuth` (RLS enforced).
+- Stats use single queries with in-memory grouping (cheap at contractor scale).
+- TanStack Query keys: `["dashboard"]`, `["projects","stats"]`, `["project",id,"stats"]`, `["workers","stats"]`, `["worker",id,"stats",month]`, `["attendance",projectId,date]`.
+- No new packages.
 
-## Data Model (Lovable Cloud / Supabase)
-
-All tables RLS-scoped to `auth.uid()` via owner_id. Grants per Lovable rules.
-
-- `workers` — id, owner_id, full_name, mobile, address, worker_type, joining_date, daily_wage, status
-- `attendance` — id, owner_id, worker_id, date, type (absent/half/full/overtime), project_id?
-- `payments` — id, owner_id, worker_id, amount, paid_on, note
-- `projects` — id, owner_id, name, client, location, start_date, expected_end, contract_value, status, progress_pct
-- `project_workers` — project_id, worker_id (assignment)
-- `project_updates` — id, project_id, note, created_at (daily notes/milestones)
-
-Wage logic (computed in server fns):
-- absent = 0, half = 0.5×daily, full = 1×daily, overtime = 1×daily + OT bonus (configurable, default 0.33×daily for the extra 3h).
-
-## Features
-
-1. **Auth** — email/password via Lovable Cloud. `/auth` page with sign in/up tabs. Protected subtree under `_authenticated/`.
-2. **Dashboard** — KPI cards (Active Workers, Present Today, Absent Today, Overtime Today, Active Projects, Pending Wages, Month Labour Cost), Quick Actions, Recent Activity feed.
-3. **Workers** — list (search + filter active/inactive), add/edit modal, profile page with attendance history & monthly summary, wage dashboard, payment records.
-4. **Attendance** — date picker (defaults today), full worker roster with one-tap chips (Absent / Half / Full / OT). Bulk save.
-5. **Wages** — auto-calculated per worker per month; "Record payment" modal; payment history; pending balance.
-6. **Projects** — list with status pills, detail page with progress slider, daily notes timeline, milestone log, worker assignment picker.
-7. **Reports** — Filters (month, project, worker). One-click XLSX download generated server-side with `xlsx` package via `createServerFn`.
-
-## Technical
-
-- Stack: TanStack Start (already set up), Tailwind v4, shadcn/ui components, Lovable Cloud (Supabase) for DB/Auth.
-- All DB access through `createServerFn` with `requireSupabaseAuth` middleware — RLS enforced as the user.
-- TanStack Query for fetching (loader prime + `useSuspenseQuery`).
-- XLSX export via `xlsx` (SheetJS) inside a server fn returning a base64 buffer the client downloads as a Blob.
-- Date utils via `date-fns`.
-- Forms via `react-hook-form` + `zod`.
-- Design tokens in `src/styles.css` (deep blue accent, glass surface tokens).
-
-## Build Order
-
-1. Enable Lovable Cloud + email/password auth, build `/auth` page and protected layout.
-2. Create DB schema + RLS + grants migration.
-3. Design system tokens, app shell with bottom nav.
-4. Workers CRUD.
-5. Attendance marking flow.
-6. Wages calculation + payments.
-7. Projects + progress + assignment.
-8. Dashboard KPIs + activity feed.
-9. Reports + XLSX export.
-
-After step 1 you'll be able to log in; each subsequent step ships a usable feature.
+## Out of scope (ask if needed)
+- Push notifications, role-based access beyond current contractor login, project budget alerts, payroll exports beyond current XLSX.
