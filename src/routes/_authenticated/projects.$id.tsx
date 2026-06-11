@@ -78,11 +78,17 @@ function ProjectPage() {
 
   const assign = useMutation({
     mutationFn: (worker_id: string) => assignFn({ data: { project_id: id, worker_id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["project", id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project", id] });
+      qc.invalidateQueries({ queryKey: ["project-stats", id] });
+    },
   });
   const unassign = useMutation({
     mutationFn: (worker_id: string) => unassignFn({ data: { project_id: id, worker_id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["project", id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project", id] });
+      qc.invalidateQueries({ queryKey: ["project-stats", id] });
+    },
   });
 
   if (!data) return null;
