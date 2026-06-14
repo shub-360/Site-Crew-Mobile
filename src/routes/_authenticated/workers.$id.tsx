@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getWorkerDetailStats } from "@/lib/stats.functions";
 import { deleteWorker } from "@/lib/workers.functions";
 import { listPayments, recordPayment } from "@/lib/payments.functions";
-import { ArrowLeft, Plus, Trash2, HardHat } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, HardHat, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
 import { EditWorkerButton } from "@/components/edit-worker-dialog";
@@ -71,11 +71,18 @@ function WorkerPage() {
             <p className="text-sm text-muted-foreground">
               {w.worker_type || "Worker"} · {formatCurrency(w.daily_wage)}/day
             </p>
-            <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
-              {w.mobile && <span>📞 {w.mobile}</span>}
+            <div className="flex gap-2 mt-3 text-xs text-muted-foreground flex-wrap items-center">
+              {w.mobile && (
+                <Button variant="outline" size="sm" className="h-8 rounded-full text-xs font-semibold px-3 inline-flex items-center gap-1.5" asChild>
+                  <a href={`tel:${w.mobile}`}>
+                    <Phone className="size-3.5 text-primary" />
+                    Call Worker
+                  </a>
+                </Button>
+              )}
               {w.status === "inactive" && <Badge variant="secondary">Inactive</Badge>}
             </div>
-            {w.address && <p className="text-xs text-muted-foreground mt-1">{w.address}</p>}
+            {w.address && <p className="text-xs text-muted-foreground mt-2">{w.address}</p>}
           </div>
           <div className="flex gap-1">
             <EditWorkerButton worker={w} />
@@ -148,23 +155,29 @@ function WorkerPage() {
           <Stat label="Lifetime earnings" value={formatCurrency(stats.lifetimeEarnings)} />
           <Stat label="Total paid" value={formatCurrency(stats.lifetimePaid)} />
           <div className="col-span-2">
-            <Stat label="Pending balance" value={formatCurrency(stats.lifetimeBalance)} highlight />
+            {stats.lifetimeBalance < 0 ? (
+              <Stat label="Advance Taken (Balance)" value={formatCurrency(Math.abs(stats.lifetimeBalance))} highlight isAdvance />
+            ) : (
+              <Stat label="Pending Balance" value={formatCurrency(stats.lifetimeBalance)} highlight />
+            )}
           </div>
         </div>
       </section>
 
       <section>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs uppercase tracking-wider text-muted-foreground">Payments</h3>
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Payment History & Ledger</h3>
           <PaymentDialog workerId={id} />
         </div>
         <Card className="divide-y">
           {payments.length === 0 && <p className="p-4 text-sm text-muted-foreground">No payments recorded.</p>}
           {payments.map((p) => (
             <div key={p.id} className="p-3 flex items-center justify-between text-sm">
-              <div>
-                <p className="font-medium">{formatCurrency(p.amount)}</p>
-                <p className="text-xs text-muted-foreground">{p.paid_on}{p.note ? ` · ${p.note}` : ""}</p>
+              <div className="min-w-0">
+                <p className="font-semibold text-foreground">
+                  {formatLedgerDate(p.paid_on)} — <span>{formatCurrency(p.amount)}</span>
+                </p>
+                {p.note && <p className="text-xs text-muted-foreground mt-0.5 italic">{p.note}</p>}
               </div>
             </div>
           ))}
@@ -174,13 +187,26 @@ function WorkerPage() {
   );
 }
 
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function Stat({ label, value, highlight, isAdvance }: { label: string; value: string; highlight?: boolean; isAdvance?: boolean }) {
+  const highlightClass = isAdvance
+    ? "bg-amber-600 dark:bg-amber-700 text-white border-amber-600 dark:border-amber-700"
+    : "bg-primary text-primary-foreground border-primary";
+  const textClass = isAdvance ? "text-amber-50" : "text-primary-foreground/80";
   return (
-    <Card className={`p-3 ${highlight ? "bg-primary text-primary-foreground" : ""}`}>
-      <p className={`text-xs ${highlight ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{label}</p>
+    <Card className={`p-3 ${highlight ? highlightClass : ""}`}>
+      <p className={`text-xs ${highlight ? textClass : "text-muted-foreground"}`}>{label}</p>
       <p className="text-lg font-semibold tabular-nums mt-1">{value}</p>
     </Card>
   );
+}
+
+function formatLedgerDate(dateStr: string) {
+  try {
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  } catch {
+    return dateStr;
+  }
 }
 
 function PaymentDialog({ workerId }: { workerId: string }) {

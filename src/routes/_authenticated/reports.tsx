@@ -128,8 +128,8 @@ function ReportsPage() {
                 <FileSpreadsheet className="size-5" />
               </div>
               <div>
-                <h2 className="font-semibold">Workforce summary (XLSX)</h2>
-                <p className="text-xs text-muted-foreground">Attendance, earnings, payments, balance.</p>
+                <h2 className="font-semibold">Contractor Report (XLSX)</h2>
+                <p className="text-xs text-muted-foreground">3 sheets: Workforce Summary, Attendance Calendar, Labour Cost.</p>
               </div>
             </div>
             <Button onClick={() => gen.mutate()} disabled={gen.isPending} className="w-full tap-target">

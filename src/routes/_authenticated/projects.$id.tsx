@@ -12,9 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Plus, Trash2, Milestone, MessageSquare, UserPlus, FileText, Upload, Download, Image as ImageIcon, History, Activity } from "lucide-react";
+import {
+  ArrowLeft, Plus, Trash2, Milestone, MessageSquare, UserPlus, FileText,
+  Upload, Download, Image as ImageIcon, History, Activity,
+  HardHat, Users, Banknote, CheckCircle2, XCircle, CalendarCheck,
+  ClipboardList, ChevronRight, Phone,
+} from "lucide-react";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import {
   getProject,
   updateProject,
@@ -26,14 +31,28 @@ import {
 } from "@/lib/projects.functions";
 import { listWorkers } from "@/lib/workers.functions";
 import { getProjectStats } from "@/lib/stats.functions";
+import { generateMonthlyReport } from "@/lib/reports.functions";
 import { recordQuotation, deleteQuotation } from "@/lib/quotations.functions";
 import { uploadProjectFile } from "@/lib/upload";
-import { formatNumber } from "@/lib/format";
 import { EditProjectButton } from "@/components/edit-project-dialog";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   component: ProjectPage,
 });
+
+const STATUS_LABEL: Record<string, string> = {
+  planning: "Planning",
+  active: "Active",
+  on_hold: "On Hold",
+  completed: "Completed",
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  planning: "secondary",
+  active: "default",
+  on_hold: "secondary",
+  completed: "secondary",
+};
 
 function ProjectPage() {
   const { id } = Route.useParams();
@@ -48,10 +67,13 @@ function ProjectPage() {
   const unassignFn = useServerFn(unassignWorker);
   const workersFn = useServerFn(listWorkers);
   const statsFn = useServerFn(getProjectStats);
+  const reportFn = useServerFn(generateMonthlyReport);
 
   const { data } = useQuery({ queryKey: ["project", id], queryFn: () => getFn({ data: { id } }) });
   const { data: workers = [] } = useQuery({ queryKey: ["workers"], queryFn: () => workersFn() });
   const { data: stats } = useQuery({ queryKey: ["project-stats", id], queryFn: () => statsFn({ data: { id } }) });
+
+  const [reportBusy, setReportBusy] = useState(false);
 
   const update = useMutation({
     mutationFn: (patch: any) => updateFn({ data: { id, ...patch } }),
@@ -81,15 +103,44 @@ function ProjectPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project", id] });
       qc.invalidateQueries({ queryKey: ["project-stats", id] });
+      toast.success("Worker assigned");
     },
+    onError: (e: any) => toast.error(e.message),
   });
+
   const unassign = useMutation({
     mutationFn: (worker_id: string) => unassignFn({ data: { project_id: id, worker_id } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project", id] });
       qc.invalidateQueries({ queryKey: ["project-stats", id] });
+      toast.success("Worker removed");
     },
+    onError: (e: any) => toast.error(e.message),
   });
+
+  async function handleDownloadReport() {
+    setReportBusy(true);
+    try {
+      const now = new Date();
+      const result = await reportFn({
+        data: {
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+          project_id: id,
+          worker_id: null,
+        },
+      });
+      const link = document.createElement("a");
+      link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${result.base64}`;
+      link.download = result.filename;
+      link.click();
+      toast.success("Report downloaded");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to generate report");
+    } finally {
+      setReportBusy(false);
+    }
+  }
 
   if (!data) return null;
   const { project, assignments, updates, quotations, activity } = data as any;
@@ -97,82 +148,255 @@ function ProjectPage() {
   const unassigned = workers.filter((w) => !assignedIds.has(w.id));
   const currentQuote = quotations.find((q: any) => q.is_current);
 
+  // Build a lookup of worker stats from the breakdown
+  const breakdownMap = new Map((stats?.breakdown ?? []).map((r: any) => [r.worker_id, r]));
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 pb-6">
+      {/* Back nav */}
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link to="/projects"><ArrowLeft className="size-4" /> Projects</Link>
       </Button>
 
-      <Card className="p-5">
+      {/* ── PROJECT HERO ─────────────────────────────────────── */}
+      <Card className="p-5 glass">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="text-xl font-semibold">{project.name}</h2>
-            <p className="text-sm text-muted-foreground">
-              {project.client ? `${project.client} · ` : ""}{project.location || "—"}
-            </p>
-            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
-              <Badge>{project.status}</Badge>
-              {project.start_date && <span className="text-muted-foreground">Start {project.start_date}</span>}
-              {project.expected_end && <span className="text-muted-foreground">→ {project.expected_end}</span>}
-              {Number(project.contract_value) > 0 && (
-                <span className="text-muted-foreground">{formatCurrency(project.contract_value)}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <Badge variant={STATUS_COLOR[project.status] as any}>
+                {STATUS_LABEL[project.status] ?? project.status}
+              </Badge>
+              {project.client && (
+                <span className="text-xs text-muted-foreground truncate">{project.client}</span>
               )}
             </div>
-            {project.notes && (
-              <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap border-t pt-3">{project.notes}</p>
+            <h1 className="text-xl font-bold leading-tight">{project.name}</h1>
+            {project.location && (
+              <p className="text-sm text-muted-foreground mt-0.5">{project.location}</p>
+            )}
+            <div className="flex items-center gap-3 mt-3">
+              <Progress value={project.progress_pct} className="h-2 flex-1" />
+              <span className="text-sm font-semibold tabular-nums text-primary shrink-0">
+                {project.progress_pct}%
+              </span>
+            </div>
+            {(project.start_date || project.expected_end) && (
+              <p className="text-xs text-muted-foreground mt-2 tabular-nums">
+                {project.start_date && <>Start: {project.start_date}</>}
+                {project.start_date && project.expected_end && " · "}
+                {project.expected_end && <>End: {project.expected_end}</>}
+                {Number(project.contract_value) > 0 && (
+                  <> · {formatCurrency(project.contract_value)}</>
+                )}
+              </p>
             )}
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 shrink-0">
             <EditProjectButton project={project} />
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => confirm("Delete project?") && del.mutate()}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => confirm("Delete this project? This cannot be undone.") && del.mutate()}
+            >
               <Trash2 className="size-4 text-destructive" />
             </Button>
           </div>
         </div>
-      </Card>
 
-      <Card className="p-5 space-y-4">
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <Label>Progress</Label>
-            <span className="text-sm font-medium tabular-nums">{project.progress_pct}%</span>
+        {/* Inline progress slider */}
+        <div className="mt-4 border-t pt-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-medium">Adjust Progress</span>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Status</Label>
+              <Select defaultValue={project.status} onValueChange={(v) => update.mutate({ status: v })}>
+                <SelectTrigger className="h-7 text-xs w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planning">Planning</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="on_hold">On Hold</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <Slider
             defaultValue={[project.progress_pct]}
-            min={0} max={100} step={5}
+            min={0}
+            max={100}
+            step={5}
             onValueCommit={(v) => update.mutate({ progress_pct: v[0] })}
           />
-          <Progress value={project.progress_pct} className="h-1.5 mt-3" />
-        </div>
-        <div>
-          <Label className="mb-2 block">Status</Label>
-          <Select defaultValue={project.status} onValueChange={(v) => update.mutate({ status: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="planning">Planning</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="on_hold">On hold</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </Card>
 
+      {/* ── WORKFORCE SUMMARY ─────────────────────────────────── */}
       {stats && (
         <section>
-          <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Project statistics</h3>
+          <h2 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2 px-0.5">
+            Workforce Summary
+          </h2>
           <div className="grid grid-cols-2 gap-3">
-            <MiniStat label="Assigned" value={formatNumber(stats.assignedCount)} />
-            <MiniStat label="Present today" value={formatNumber(stats.presentToday)} tone="success" />
-            <MiniStat label="Absent today" value={formatNumber(stats.absentToday)} tone="warning" />
-            <MiniStat label="Month labour cost" value={formatCurrency(stats.monthCost)} />
+            <StatCard
+              icon={<Users className="size-4" />}
+              label="Assigned"
+              value={formatNumber(stats.assignedCount)}
+              sub="workers on site"
+            />
+            <StatCard
+              icon={<CheckCircle2 className="size-4 text-emerald-500" />}
+              label="Present Today"
+              value={formatNumber(stats.presentToday)}
+              sub="marked present"
+              tone="success"
+            />
+            <StatCard
+              icon={<XCircle className="size-4 text-amber-500" />}
+              label="Absent Today"
+              value={formatNumber(stats.absentToday)}
+              sub="not marked"
+              tone="warning"
+            />
+            <StatCard
+              icon={<Banknote className="size-4 text-primary" />}
+              label="Month Labour"
+              value={formatCurrency(stats.monthCost)}
+              sub="this month"
+            />
           </div>
         </section>
       )}
 
+      {/* ── QUICK ACTIONS ─────────────────────────────────────── */}
+      <section>
+        <h2 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2 px-0.5">
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-3 gap-2">
+          <Link to="/attendance" className="contents">
+            <button className="flex flex-col items-center gap-2 rounded-xl border bg-card p-3.5 hover:bg-accent/50 transition-colors tap-target text-center">
+              <CalendarCheck className="size-5 text-primary" />
+              <span className="text-xs font-medium leading-tight">Mark Attendance</span>
+            </button>
+          </Link>
+          <AssignDialog unassigned={unassigned} onAssign={(wid) => assign.mutate(wid)}>
+            <button className="flex flex-col items-center gap-2 rounded-xl border bg-card p-3.5 hover:bg-accent/50 transition-colors tap-target text-center w-full">
+              <UserPlus className="size-5 text-primary" />
+              <span className="text-xs font-medium leading-tight">Add Worker</span>
+            </button>
+          </AssignDialog>
+          <button
+            onClick={handleDownloadReport}
+            disabled={reportBusy}
+            className="flex flex-col items-center gap-2 rounded-xl border bg-card p-3.5 hover:bg-accent/50 transition-colors tap-target text-center disabled:opacity-50"
+          >
+            <Download className="size-5 text-primary" />
+            <span className="text-xs font-medium leading-tight">
+              {reportBusy ? "Generating…" : "Download Report"}
+            </span>
+          </button>
+        </div>
+      </section>
+
+      {/* ── WORKERS ON SITE ───────────────────────────────────── */}
+      <section>
+        <div className="flex items-center justify-between mb-2 px-0.5">
+          <h2 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            Workers on Site ({assignments.length})
+          </h2>
+          <AssignDialog unassigned={unassigned} onAssign={(wid) => assign.mutate(wid)}>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+              <UserPlus className="size-3.5" /> Assign
+            </Button>
+          </AssignDialog>
+        </div>
+
+        {assignments.length === 0 ? (
+          <Card className="p-6 text-center">
+            <HardHat className="size-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No workers assigned to this site yet.</p>
+            <AssignDialog unassigned={unassigned} onAssign={(wid) => assign.mutate(wid)}>
+              <Button size="sm" className="mt-3 gap-1">
+                <UserPlus className="size-4" /> Assign First Worker
+              </Button>
+            </AssignDialog>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {assignments.map((a: any) => {
+              const wb = breakdownMap.get(a.worker_id) as any;
+              const phone = a.workers?.mobile;
+              return (
+                <Card key={a.worker_id} className="p-3.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to="/workers/$id"
+                          params={{ id: a.worker_id }}
+                          className="font-semibold text-sm hover:underline truncate"
+                        >
+                          {a.workers?.full_name}
+                        </Link>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {a.workers?.worker_type || "Worker"} · {formatCurrency(a.workers?.daily_wage ?? 0)}/day
+                      </p>
+                      {wb && (
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          <span className="inline-flex items-center gap-1 text-[11px] bg-accent/70 px-2 py-0.5 rounded font-medium tabular-nums">
+                            <CalendarCheck className="size-3 text-muted-foreground" />
+                            {wb.days} days this month
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[11px] bg-accent/70 px-2 py-0.5 rounded font-medium tabular-nums text-primary">
+                            <Banknote className="size-3" />
+                            {formatCurrency(wb.earnings)} earned
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                      {phone && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full"
+                          asChild
+                        >
+                          <a href={`tel:${phone}`}>
+                            <Phone className="size-4 text-muted-foreground" />
+                          </a>
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full"
+                        onClick={() =>
+                          confirm(`Remove ${a.workers?.full_name} from this project?`) &&
+                          unassign.mutate(a.worker_id)
+                        }
+                      >
+                        <Trash2 className="size-4 text-destructive/70" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── LABOUR COST BREAKDOWN ─────────────────────────────── */}
       {stats && stats.breakdown.length > 0 && (
         <section>
-          <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Labour cost breakdown</h3>
+          <h2 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2 px-0.5">
+            Labour Cost Breakdown
+          </h2>
           <Card className="divide-y">
             {stats.breakdown.map((r: any) => (
               <div key={r.worker_id} className="p-3 flex items-center justify-between text-sm">
@@ -187,53 +411,45 @@ function ProjectPage() {
         </section>
       )}
 
+      {/* ── QUOTATION ─────────────────────────────────────────── */}
       <QuotationsSection projectId={id} quotations={quotations} currentQuote={currentQuote} />
 
+      {/* ── PROGRESS NOTES ────────────────────────────────────── */}
       <section>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs uppercase tracking-wider text-muted-foreground">Workers on site ({assignments.length})</h3>
-          <AssignDialog unassigned={unassigned} onAssign={(wid) => assign.mutate(wid)} />
-        </div>
-        <Card className="divide-y">
-          {assignments.length === 0 && <p className="p-4 text-sm text-muted-foreground">No workers assigned yet.</p>}
-          {assignments.map((a: any) => (
-            <div key={a.worker_id} className="p-3 flex items-center justify-between text-sm">
-              <div>
-                <p className="font-medium">{a.workers?.full_name}</p>
-                <p className="text-xs text-muted-foreground">{a.workers?.worker_type || "Worker"}</p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => unassign.mutate(a.worker_id)}>
-                <Trash2 className="size-4 text-muted-foreground" />
-              </Button>
-            </div>
-          ))}
-        </Card>
-      </section>
-
-      <section>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs uppercase tracking-wider text-muted-foreground">Progress notes & site photos</h3>
+        <div className="flex items-center justify-between mb-2 px-0.5">
+          <h2 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            Progress Notes & Site Photos
+          </h2>
           <NoteDialog projectId={id} onAdd={(v) => addNote.mutate(v)} />
         </div>
         <Card className="divide-y">
-          {updates.length === 0 && <p className="p-4 text-sm text-muted-foreground">No updates yet.</p>}
+          {updates.length === 0 && (
+            <p className="p-4 text-sm text-muted-foreground">No updates yet.</p>
+          )}
           {updates.map((u: any) => (
             <UpdateRow key={u.id} update={u} />
           ))}
         </Card>
       </section>
 
+      {/* ── ACTIVITY LOG ──────────────────────────────────────── */}
       <section>
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 px-0.5">
           <Activity className="size-3.5 text-muted-foreground" />
-          <h3 className="text-xs uppercase tracking-wider text-muted-foreground">Activity log</h3>
+          <h2 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            Activity Log
+          </h2>
         </div>
         <Card className="divide-y">
-          {activity.length === 0 && <p className="p-4 text-sm text-muted-foreground">No activity yet.</p>}
+          {activity.length === 0 && (
+            <p className="p-4 text-sm text-muted-foreground">No activity yet.</p>
+          )}
           {activity.map((a: any) => (
             <div key={a.id} className="p-3 text-sm">
               <p>{a.description || a.action}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{new Date(a.created_at).toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {new Date(a.created_at).toLocaleString()}
+              </p>
             </div>
           ))}
         </Card>
@@ -242,6 +458,81 @@ function ProjectPage() {
   );
 }
 
+/* ── Stat Card ─────────────────────────────────────────────────── */
+function StatCard({
+  icon,
+  label,
+  value,
+  sub,
+  tone = "default",
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: "default" | "success" | "warning";
+}) {
+  const valueClass = {
+    default: "text-primary",
+    success: "text-emerald-500",
+    warning: "text-amber-500",
+  }[tone];
+  return (
+    <div className="rounded-xl border bg-card p-3.5 flex flex-col gap-1">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
+        {icon}
+        <p className="text-xs font-medium">{label}</p>
+      </div>
+      <p className={`text-2xl font-bold tabular-nums ${valueClass}`}>{value}</p>
+      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+    </div>
+  );
+}
+
+/* ── Assign Dialog ─────────────────────────────────────────────── */
+function AssignDialog({
+  unassigned,
+  onAssign,
+  children,
+}: {
+  unassigned: any[];
+  onAssign: (id: string) => void;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Assign worker to project</DialogTitle></DialogHeader>
+        <div className="space-y-1 max-h-80 overflow-y-auto">
+          {unassigned.length === 0 && (
+            <p className="text-sm text-muted-foreground py-3">
+              All workers are already assigned to this project.
+            </p>
+          )}
+          {unassigned.map((w) => (
+            <button
+              key={w.id}
+              onClick={() => { onAssign(w.id); setOpen(false); }}
+              className="w-full text-left p-3 rounded-md hover:bg-accent text-sm tap-target flex items-center justify-between"
+            >
+              <div>
+                <p className="font-medium">{w.full_name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {w.worker_type || "Worker"} · {formatCurrency(w.daily_wage)}/day
+                </p>
+              </div>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </button>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ── Quotations Section ────────────────────────────────────────── */
 function QuotationsSection({
   projectId,
   quotations,
@@ -299,8 +590,8 @@ function QuotationsSection({
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs uppercase tracking-wider text-muted-foreground">Quotation</h3>
+      <div className="flex items-center justify-between mb-2 px-0.5">
+        <h2 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Quotation</h2>
         <div className="flex gap-1">
           {quotations.length > 1 && (
             <Button size="sm" variant="ghost" onClick={() => setHistoryOpen(true)}>
@@ -321,7 +612,9 @@ function QuotationsSection({
       </div>
       <Card className="p-4">
         {!currentQuote ? (
-          <p className="text-sm text-muted-foreground">No quotation uploaded. Upload PDF, Excel, or image.</p>
+          <p className="text-sm text-muted-foreground">
+            No quotation uploaded. Upload PDF, Excel, or image.
+          </p>
         ) : (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -331,11 +624,6 @@ function QuotationsSection({
                 <p className="text-xs text-muted-foreground">
                   v{currentQuote.version} · Uploaded {new Date(currentQuote.created_at).toLocaleString()}
                 </p>
-                {currentQuote.updated_at !== currentQuote.created_at && (
-                  <p className="text-xs text-muted-foreground">
-                    Updated {new Date(currentQuote.updated_at).toLocaleString()}
-                  </p>
-                )}
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={() => openFile(currentQuote.file_path)}>
@@ -353,13 +641,20 @@ function QuotationsSection({
               <div key={q.id} className="py-3 flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">
-                    v{q.version} · {q.file_name} {q.is_current && <Badge className="ml-1" variant="secondary">Current</Badge>}
+                    v{q.version} · {q.file_name}{" "}
+                    {q.is_current && <Badge className="ml-1" variant="secondary">Current</Badge>}
                   </p>
-                  <p className="text-xs text-muted-foreground">{new Date(q.created_at).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(q.created_at).toLocaleString()}
+                  </p>
                 </div>
                 <div className="flex gap-1">
                   <Button size="sm" variant="outline" onClick={() => openFile(q.file_path)}>Open</Button>
-                  <Button size="icon" variant="ghost" onClick={() => confirm("Delete this version?") && del.mutate(q.id)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => confirm("Delete this version?") && del.mutate(q.id)}
+                  >
                     <Trash2 className="size-4 text-destructive" />
                   </Button>
                 </div>
@@ -372,6 +667,7 @@ function QuotationsSection({
   );
 }
 
+/* ── Update Row ────────────────────────────────────────────────── */
 function UpdateRow({ update }: { update: any }) {
   const urlFn = useServerFn(getSignedFileUrl);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -393,7 +689,9 @@ function UpdateRow({ update }: { update: any }) {
         : <MessageSquare className="size-4 text-muted-foreground mt-0.5" />}
       <div className="flex-1 min-w-0">
         <p>{update.note}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{new Date(update.created_at).toLocaleString()}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {new Date(update.created_at).toLocaleString()}
+        </p>
         {update.photo_path && (
           <div className="mt-2">
             {photoUrl ? (
@@ -410,6 +708,7 @@ function UpdateRow({ update }: { update: any }) {
   );
 }
 
+/* ── Note Dialog ───────────────────────────────────────────────── */
 function NoteDialog({
   projectId,
   onAdd,
@@ -421,7 +720,9 @@ function NoteDialog({
   const [busy, setBusy] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm"><Plus className="size-4" /> Note</Button></DialogTrigger>
+      <DialogTrigger asChild>
+        <Button size="sm"><Plus className="size-4" /> Note</Button>
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader><DialogTitle>Add update</DialogTitle></DialogHeader>
         <form
@@ -456,44 +757,11 @@ function NoteDialog({
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="is_milestone" /> Mark as milestone
           </label>
-          <DialogFooter><Button type="submit" disabled={busy}>{busy ? "Saving…" : "Add"}</Button></DialogFooter>
+          <DialogFooter>
+            <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Add"}</Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function AssignDialog({ unassigned, onAssign }: { unassigned: any[]; onAssign: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm" variant="outline"><UserPlus className="size-4" /> Assign</Button></DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Assign worker</DialogTitle></DialogHeader>
-        <div className="space-y-1 max-h-80 overflow-y-auto">
-          {unassigned.length === 0 && <p className="text-sm text-muted-foreground">All workers already assigned.</p>}
-          {unassigned.map((w) => (
-            <button
-              key={w.id}
-              onClick={() => { onAssign(w.id); setOpen(false); }}
-              className="w-full text-left p-3 rounded-md hover:bg-accent text-sm tap-target"
-            >
-              <p className="font-medium">{w.full_name}</p>
-              <p className="text-xs text-muted-foreground">{w.worker_type || "Worker"}</p>
-            </button>
-          ))}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function MiniStat({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" | "warning" }) {
-  const toneClass = { default: "text-primary", success: "text-[var(--success)]", warning: "text-[var(--warning)]" }[tone];
-  return (
-    <div className="rounded-md border p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-lg font-semibold tabular-nums mt-1 ${toneClass}`}>{value}</p>
-    </div>
   );
 }

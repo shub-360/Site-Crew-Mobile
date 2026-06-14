@@ -52,10 +52,20 @@ function ProjectsPage() {
                     <Progress value={p.progress_pct} className="h-1.5 flex-1" />
                     <span className="text-xs text-muted-foreground tabular-nums w-9 text-right">{p.progress_pct}%</span>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground tabular-nums">
-                    <span className="inline-flex items-center gap-1"><Users className="size-3" />{p.assignedCount} workers</span>
-                    <span className="inline-flex items-center gap-1"><Banknote className="size-3" />{formatCurrency(p.monthCost)} / mo</span>
-                    {p.presentToday > 0 && <span className="text-[var(--success)]">{p.presentToday} present today</span>}
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground tabular-nums">
+                    <span className="inline-flex items-center gap-1 bg-accent/80 px-2 py-0.5 rounded font-medium text-foreground/80">
+                      <Users className="size-3 text-muted-foreground" />
+                      {p.assignedCount} Workers
+                    </span>
+                    <span className="inline-flex items-center gap-1 bg-accent/80 px-2 py-0.5 rounded font-medium text-foreground/80">
+                      <Banknote className="size-3 text-muted-foreground" />
+                      {formatCurrency(p.monthCost)} Labour Cost
+                    </span>
+                    {p.presentToday > 0 && (
+                      <span className="inline-flex items-center gap-1 bg-green-50 dark:bg-green-950/30 text-[var(--success)] px-2 py-0.5 rounded font-semibold">
+                        {p.presentToday} Present Today
+                      </span>
+                    )}
                   </div>
                 </div>
                 <ChevronRight className="size-4 text-muted-foreground mt-1" />

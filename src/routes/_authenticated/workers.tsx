@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createWorker } from "@/lib/workers.functions";
 import { listWorkersWithStats } from "@/lib/stats.functions";
-import { Plus, Search, ChevronRight } from "lucide-react";
+import { Plus, Search, ChevronRight, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
 import { EditWorkerButton } from "@/components/edit-worker-dialog";
@@ -24,8 +24,21 @@ function WorkersPage() {
   const fetchList = useServerFn(listWorkersWithStats);
   const { data: workers = [] } = useQuery({ queryKey: ["workers", "stats"], queryFn: () => fetchList() });
   const [q, setQ] = useState("");
+  const [filterTab, setFilterTab] = useState<"all" | "available" | "assigned" | "inactive">("all");
 
-  const filtered = workers.filter((w) => w.full_name.toLowerCase().includes(q.toLowerCase()));
+  const filtered = workers.filter((w) => {
+    const matchesSearch = w.full_name.toLowerCase().includes(q.toLowerCase());
+    if (!matchesSearch) return false;
+
+    const isInactive = w.status === "inactive";
+    const isAssigned = !isInactive && w.assignedProjects && w.assignedProjects.length > 0;
+    const isAvailable = !isInactive && (!w.assignedProjects || w.assignedProjects.length === 0);
+
+    if (filterTab === "inactive") return isInactive;
+    if (filterTab === "assigned") return isAssigned;
+    if (filterTab === "available") return isAvailable;
+    return true; // 'all'
+  });
 
   return (
     <div className="space-y-4">
@@ -37,49 +50,108 @@ function WorkersPage() {
         <AddWorkerDialog />
       </div>
 
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+        {[
+          { id: "all", label: "All Workers" },
+          { id: "available", label: "🟢 Available" },
+          { id: "assigned", label: "🔵 Assigned" },
+          { id: "inactive", label: "🔴 Inactive" },
+        ].map((tab) => (
+          <Button
+            key={tab.id}
+            variant={filterTab === tab.id ? "default" : "outline"}
+            size="sm"
+            className="text-xs shrink-0 rounded-full h-8 px-4 font-medium"
+            onClick={() => setFilterTab(tab.id as any)}
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+
       <Card className="divide-y">
         {filtered.length === 0 && (
           <p className="p-6 text-sm text-muted-foreground text-center">No workers yet. Add your first worker.</p>
         )}
-        {filtered.map((w: any) => (
-          <div key={w.id} className="relative group">
-            <Link
-              to="/workers/$id"
-              params={{ id: w.id }}
-              className="block p-4 pr-20 hover:bg-accent/40 transition-colors tap-target"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium truncate">{w.full_name}</p>
-                    {w.status === "inactive" && <Badge variant="secondary">Inactive</Badge>}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {w.worker_type || "Worker"} · {formatCurrency(w.daily_wage)}/day
-                  </p>
-                  {w.assignedProjects?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {w.assignedProjects.slice(0, 3).map((p: string) => (
-                        <Badge key={p} variant="outline" className="text-[10px] font-normal">{p}</Badge>
-                      ))}
-                      {w.assignedProjects.length > 3 && (
-                        <Badge variant="outline" className="text-[10px] font-normal">+{w.assignedProjects.length - 3}</Badge>
-                      )}
+        {filtered.map((w: any) => {
+          const isInactive = w.status === "inactive";
+          const isAssigned = !isInactive && w.assignedProjects && w.assignedProjects.length > 0;
+          const isAvailable = !isInactive && (!w.assignedProjects || w.assignedProjects.length === 0);
+
+          const statusIndicator = isInactive ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-full shrink-0">
+              <span className="size-1.5 rounded-full bg-destructive" />
+              Inactive
+            </span>
+          ) : isAssigned ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400 px-2 py-0.5 rounded-full shrink-0">
+              <span className="size-1.5 rounded-full bg-blue-500" />
+              Assigned
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--success)] bg-green-50 dark:bg-green-950/40 dark:text-green-400 px-2 py-0.5 rounded-full shrink-0">
+              <span className="size-1.5 rounded-full bg-[var(--success)]" />
+              Available
+            </span>
+          );
+
+          return (
+            <div key={w.id} className="relative group">
+              <Link
+                to="/workers/$id"
+                params={{ id: w.id }}
+                className="block p-4 pr-24 hover:bg-accent/40 transition-colors tap-target"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold truncate text-sm sm:text-base">{w.full_name}</p>
+                      {statusIndicator}
                     </div>
-                  )}
-                  <div className="flex gap-4 mt-2 text-xs text-muted-foreground tabular-nums">
-                    <span><span className="text-foreground font-medium">{w.monthDays}</span> days</span>
-                    <span><span className="text-foreground font-medium">{formatCurrency(w.monthEarnings)}</span> earned</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {w.worker_type || "Worker"} · {formatCurrency(w.daily_wage)}/day
+                    </p>
+                    {w.assignedProjects?.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {w.assignedProjects.map((p: string) => (
+                          <Badge key={p} variant="outline" className="text-[10px] font-medium bg-primary/5 border-primary/20 text-primary">
+                            📍 {p}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-1.5">
+                        <Badge variant="secondary" className="text-[10px] font-medium text-muted-foreground border-dashed">
+                          No site assigned
+                        </Badge>
+                      </div>
+                    )}
+                    <div className="flex gap-4 mt-2.5 text-xs text-muted-foreground tabular-nums">
+                      <span><span className="text-foreground font-medium">{w.monthDays}</span> Days Worked</span>
+                      <span><span className="text-foreground font-medium">{formatCurrency(w.monthEarnings)}</span> Earned</span>
+                    </div>
                   </div>
+                  <ChevronRight className="size-4 text-muted-foreground mt-1 shrink-0" />
                 </div>
-                <ChevronRight className="size-4 text-muted-foreground mt-1" />
+              </Link>
+              <div className="absolute right-10 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {w.mobile && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-accent text-primary shrink-0"
+                    asChild
+                  >
+                    <a href={`tel:${w.mobile}`} aria-label={`Call ${w.full_name}`} onClick={(e) => e.stopPropagation()}>
+                      <Phone className="size-4" />
+                    </a>
+                  </Button>
+                )}
+                <EditWorkerButton worker={w} />
               </div>
-            </Link>
-            <div className="absolute right-10 top-4">
-              <EditWorkerButton worker={w} />
             </div>
-          </div>
-        ))}
+          );
+        })}
       </Card>
     </div>
   );

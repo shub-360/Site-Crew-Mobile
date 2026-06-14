@@ -6,11 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { listProjectsWithStats, getProjectAssignedWorkers, getAttendanceForProjectDay } from "@/lib/stats.functions";
-import { upsertAttendance } from "@/lib/attendance.functions";
+import { listProjectsWithStats, getProjectAssignedWorkers, getAttendanceForProjectDay, getAttendanceMatrix, listWorkersWithStats } from "@/lib/stats.functions";
+import { upsertAttendance, bulkUpsertAttendance } from "@/lib/attendance.functions";
+import { assignWorker } from "@/lib/projects.functions";
 import { ATTENDANCE_LABEL, type AttendanceType } from "@/lib/wages";
 import { toast } from "sonner";
-import { Calendar, ArrowLeft, HardHat, ChevronRight } from "lucide-react";
+import { Calendar, ArrowLeft, HardHat, ChevronRight, UserPlus, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/attendance")({
   component: AttendancePage,
@@ -76,7 +77,10 @@ function ProjectAttendance({ projectId, onBack }: { projectId: string; onBack: (
   const workersFn = useServerFn(getProjectAssignedWorkers);
   const dayFn = useServerFn(getAttendanceForProjectDay);
   const upsertFn = useServerFn(upsertAttendance);
+  const bulkUpsertFn = useServerFn(bulkUpsertAttendance);
   const projectsFn = useServerFn(listProjectsWithStats);
+  const listAllWorkersWithStatsFn = useServerFn(listWorkersWithStats);
+  const assignFn = useServerFn(assignWorker);
 
   const { data: projects = [] } = useQuery({ queryKey: ["projects", "stats"], queryFn: () => projectsFn() });
   const project = projects.find((p) => p.id === projectId);
@@ -90,6 +94,25 @@ function ProjectAttendance({ projectId, onBack }: { projectId: string; onBack: (
     queryFn: () => dayFn({ data: { project_id: projectId, date } }),
   });
   const byWorker = new Map(dayRows.map((r) => [r.worker_id, r.type as AttendanceType]));
+
+  // Yesterday's reference
+  const selectedDate = new Date(date + "T00:00:00");
+  selectedDate.setDate(selectedDate.getDate() - 1);
+  const yesterdayStr = selectedDate.toISOString().slice(0, 10);
+  const { data: yesterdayRows = [] } = useQuery({
+    queryKey: ["attendance", projectId, yesterdayStr],
+    queryFn: () => dayFn({ data: { project_id: projectId, date: yesterdayStr } }),
+  });
+  const yesterdayByWorker = new Map(yesterdayRows.map((r) => [r.worker_id, r.type as AttendanceType]));
+
+  // Unassigned workers handling
+  const { data: allWorkersWithStats = [] } = useQuery({
+    queryKey: ["workers", "stats"],
+    queryFn: () => listAllWorkersWithStatsFn(),
+  });
+  const unassignedWorkers = allWorkersWithStats.filter(
+    (w: any) => (!w.assignedProjects || w.assignedProjects.length === 0) && w.status === "active"
+  );
 
   const mark = useMutation({
     mutationFn: (vars: { worker_id: string; type: AttendanceType }) =>
@@ -109,6 +132,35 @@ function ProjectAttendance({ projectId, onBack }: { projectId: string; onBack: (
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["projects", "stats"] });
     },
+  });
+
+  const markAllFull = useMutation({
+    mutationFn: () =>
+      bulkUpsertFn({
+        data: {
+          date,
+          project_id: projectId,
+          workers: workers.map((w: any) => ({ worker_id: w.id, type: "full" as AttendanceType })),
+        },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["attendance", projectId, date] });
+      qc.invalidateQueries({ queryKey: ["projects", "stats"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success("Marked all as Full Day");
+    },
+    onError: (e: any) => toast.error(e.message || "Couldn't save bulk attendance"),
+  });
+
+  const assign = useMutation({
+    mutationFn: (worker_id: string) => assignFn({ data: { project_id: projectId, worker_id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project-workers", projectId] });
+      qc.invalidateQueries({ queryKey: ["workers", "stats"] });
+      qc.invalidateQueries({ queryKey: ["projects", "stats"] });
+      toast.success("Worker assigned to project");
+    },
+    onError: (e: any) => toast.error(e.message),
   });
 
   const present = dayRows.filter((r) => r.type !== "absent").length;
@@ -139,36 +191,87 @@ function ProjectAttendance({ projectId, onBack }: { projectId: string; onBack: (
           No workers assigned to this project. Assign workers from the project page.
         </Card>
       ) : (
-        <div className="space-y-2">
-          {workers.map((w: any) => {
-            const current = byWorker.get(w.id);
-            return (
-              <Card key={w.id} className="p-3">
-                <div className="flex items-center justify-between mb-2 gap-2">
+        <div className="space-y-3">
+          <Button
+            variant="outline"
+            className="w-full gap-2 hover:bg-accent border-primary/20 text-xs font-semibold py-5"
+            onClick={() => markAllFull.mutate()}
+            disabled={markAllFull.isPending || workers.length === 0}
+          >
+            <Sparkles className="size-3.5 text-primary" />
+            {markAllFull.isPending ? "Saving..." : "Mark All Full Day"}
+          </Button>
+
+          <div className="space-y-2">
+            {workers.map((w: any) => {
+              const current = byWorker.get(w.id);
+              const yest = yesterdayByWorker.get(w.id);
+              return (
+                <Card key={w.id} className="p-3">
+                  <div className="flex items-center justify-between mb-2 gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{w.full_name}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                        <span>{w.worker_type || "Worker"}</span>
+                        {yest && (
+                          <span className="text-[10px] text-muted-foreground/85 bg-accent/60 px-1 py-0.2 rounded font-normal tabular-nums">
+                            Yesterday: {ATTENDANCE_LABEL[yest]}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {TYPES.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => mark.mutate({ worker_id: w.id, type: t })}
+                        className={`tap-target rounded-md text-xs font-medium px-1 py-2 border transition-colors ${
+                          current === t
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background hover:bg-accent border-border"
+                        }`}
+                      >
+                        {ATTENDANCE_LABEL[t]}
+                      </button>
+                    ))}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {unassignedWorkers.length > 0 && (
+        <section className="space-y-2 mt-6 border-t pt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <UserPlus className="size-3.5 text-muted-foreground" />
+            <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Unassigned Workers ({unassignedWorkers.length})</h3>
+          </div>
+          <div className="space-y-2">
+            {unassignedWorkers.map((w: any) => (
+              <Card key={w.id} className="p-3 bg-muted/40 border-dashed">
+                <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">{w.full_name}</p>
-                    <p className="text-xs text-muted-foreground">{w.worker_type || "Worker"}</p>
+                    <p className="text-xs text-destructive font-medium mt-0.5">This worker is not assigned to any project.</p>
                   </div>
-                </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {TYPES.map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => mark.mutate({ worker_id: w.id, type: t })}
-                      className={`tap-target rounded-md text-xs font-medium px-1 py-2 border transition-colors ${
-                        current === t
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background hover:bg-accent border-border"
-                      }`}
-                    >
-                      {ATTENDANCE_LABEL[t]}
-                    </button>
-                  ))}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={() => assign.mutate(w.id)}
+                    disabled={assign.isPending}
+                  >
+                    <UserPlus className="size-3.5 mr-1" />
+                    Assign
+                  </Button>
                 </div>
               </Card>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );
