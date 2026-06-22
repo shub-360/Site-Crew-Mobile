@@ -1,115 +1,97 @@
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabase } from "@/integrations/supabase/client";
+import { requireUserId } from "@/lib/auth";
 
-const typeEnum = z.enum(["absent", "half", "full", "overtime"]);
+type AttendanceType = "absent" | "half" | "full" | "overtime";
 
-export const getAttendanceForDay = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((d: { date: string }) => z.object({ date: z.string().min(8) }).parse(d))
-  .handler(async ({ context, data }) => {
-    const { data: rows, error } = await context.supabase
-      .from("attendance")
-      .select("id, worker_id, type, project_id")
-      .eq("date", data.date);
-    if (error) throw new Error(error.message);
-    return rows ?? [];
-  });
 
-export const upsertAttendance = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((d: unknown) =>
-    z
-      .object({
-        worker_id: z.string().uuid(),
-        date: z.string().min(8),
-        type: typeEnum,
-        project_id: z.string().uuid().nullable().optional(),
-      })
-      .parse(d),
-  )
-  .handler(async ({ context, data }) => {
-    const { error } = await context.supabase
-      .from("attendance")
-      .upsert(
-        {
-          worker_id: data.worker_id,
-          date: data.date,
-          type: data.type,
-          project_id: data.project_id ?? null,
-          owner_id: context.userId,
-        },
-        { onConflict: "worker_id,date" },
-      );
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+// ─── Attendance Operations ───────────────────────────────────
 
-export const bulkUpsertAttendance = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((d: unknown) =>
-    z
-      .object({
-        date: z.string().min(8),
-        project_id: z.string().uuid(),
-        workers: z.array(
-          z.object({
-            worker_id: z.string().uuid(),
-            type: typeEnum,
-          })
-        ),
-      })
-      .parse(d),
-  )
-  .handler(async ({ context, data }) => {
-    const rows = data.workers.map((w) => ({
-      worker_id: w.worker_id,
-      date: data.date,
-      type: w.type,
-      project_id: data.project_id,
-      owner_id: context.userId,
-    }));
-    const { error } = await context.supabase
-      .from("attendance")
-      .upsert(rows, { onConflict: "worker_id,date" });
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export async function getAttendanceForDay(data: { date: string }) {
+  const { data: rows, error } = await supabase
+    .from("attendance")
+    .select("id, worker_id, type, project_id")
+    .eq("date", data.date);
+  if (error) throw new Error(error.message);
+  return rows ?? [];
+}
 
-export const clearAttendance = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((d: unknown) =>
-    z.object({ worker_id: z.string().uuid(), date: z.string().min(8) }).parse(d),
-  )
-  .handler(async ({ context, data }) => {
-    const { error } = await context.supabase
-      .from("attendance")
-      .delete()
-      .eq("worker_id", data.worker_id)
-      .eq("date", data.date);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export async function upsertAttendance(data: {
+  worker_id: string;
+  date: string;
+  type: AttendanceType;
+  project_id?: string | null;
+}) {
+  const userId = await requireUserId();
 
-export const getWorkerAttendance = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((d: { worker_id: string; from: string; to: string }) =>
-    z
-      .object({
-        worker_id: z.string().uuid(),
-        from: z.string().min(8),
-        to: z.string().min(8),
-      })
-      .parse(d),
-  )
-  .handler(async ({ context, data }) => {
-    const { data: rows, error } = await context.supabase
-      .from("attendance")
-      .select("date, type, project_id")
-      .eq("worker_id", data.worker_id)
-      .gte("date", data.from)
-      .lte("date", data.to)
-      .order("date", { ascending: false });
-    if (error) throw new Error(error.message);
-    return rows ?? [];
-  });
+  const { error } = await supabase
+    .from("attendance")
+    .upsert(
+      {
+        worker_id: data.worker_id,
+        date: data.date,
+        type: data.type,
+        project_id: data.project_id ?? null,
+        owner_id: userId,
+      },
+      {
+        onConflict: "worker_id,date",
+      }
+    );
+
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function bulkUpsertAttendance(data: {
+  date: string;
+  project_id: string;
+  workers: { worker_id: string; type: AttendanceType }[];
+}) {
+  const userId = await requireUserId();
+
+  const upsertRows = data.workers.map((w) => ({
+    worker_id: w.worker_id,
+    date: data.date,
+    type: w.type,
+    project_id: data.project_id,
+    owner_id: userId,
+  }));
+
+  const { error } = await supabase
+    .from("attendance")
+    .upsert(upsertRows, {
+      onConflict: "worker_id,date",
+    });
+
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function clearAttendance(data: {
+  worker_id: string;
+  date: string;
+}) {
+  const { error } = await supabase
+    .from("attendance")
+    .delete()
+    .eq("worker_id", data.worker_id)
+    .eq("date", data.date);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function getWorkerAttendance(data: {
+  worker_id: string;
+  from: string;
+  to: string;
+}) {
+  const { data: rows, error } = await supabase
+    .from("attendance")
+    .select("date, type, project_id")
+    .eq("worker_id", data.worker_id)
+    .gte("date", data.from)
+    .lte("date", data.to)
+    .order("date", { ascending: false });
+  if (error) throw new Error(error.message);
+  return rows ?? [];
+}

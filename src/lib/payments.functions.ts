@@ -1,47 +1,35 @@
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabase } from "@/integrations/supabase/client";
+import { requireUserId } from "@/lib/auth";
 
-export const listPayments = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((d: { worker_id: string }) =>
-    z.object({ worker_id: z.string().uuid() }).parse(d),
-  )
-  .handler(async ({ context, data }) => {
-    const { data: rows, error } = await context.supabase
-      .from("payments")
-      .select("*")
-      .eq("worker_id", data.worker_id)
-      .order("paid_on", { ascending: false });
-    if (error) throw new Error(error.message);
-    return rows ?? [];
-  });
 
-export const recordPayment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((d: unknown) =>
-    z
-      .object({
-        worker_id: z.string().uuid(),
-        amount: z.number().min(0.01).max(10_000_000),
-        paid_on: z.string().min(8),
-        note: z.string().max(500).optional().nullable(),
-      })
-      .parse(d),
-  )
-  .handler(async ({ context, data }) => {
-    const { error } = await context.supabase
-      .from("payments")
-      .insert({ ...data, owner_id: context.userId });
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+// ─── Payment Operations ─────────────────────────────────────
 
-export const deletePayment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ context, data }) => {
-    const { error } = await context.supabase.from("payments").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export async function listPayments(data: { worker_id: string }) {
+  const { data: rows, error } = await supabase
+    .from("payments")
+    .select("*")
+    .eq("worker_id", data.worker_id)
+    .order("paid_on", { ascending: false });
+  if (error) throw new Error(error.message);
+  return rows ?? [];
+}
+
+export async function recordPayment(data: {
+  worker_id: string;
+  amount: number;
+  paid_on: string;
+  note?: string | null;
+}) {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("payments")
+    .insert({ ...data, owner_id: userId });
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function deletePayment(data: { id: string }) {
+  const { error } = await supabase.from("payments").delete().eq("id", data.id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}

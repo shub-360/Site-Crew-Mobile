@@ -1,26 +1,31 @@
-import { useEffect, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
+/**
+ * Hook to manage Supabase authentication session.
+ * Mirrors the web app's useSession hook but adapted for React Native.
+ */
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
+    // Get the initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
-      setSession(s);
+
+    // Listen for auth state changes (login, logout, token refresh)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
     });
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  return { session, loading };
+  return { session, loading, user: session?.user ?? null };
 }
