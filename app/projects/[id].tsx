@@ -10,6 +10,8 @@ import {
   Linking,
   TextInput,
   Image,
+  Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { DatePickerField } from "@/components/DatePickerField";
@@ -743,205 +745,210 @@ export default function ProjectDetailScreen() {
 
       {/* Edit Project Modal */}
       <Modal visible={showEditModal} animationType="slide" transparent onRequestClose={() => setShowEditModal(false)}>
-        <View className="flex-1 justify-end bg-black/60">
-          <View
-            style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
-            className={`rounded-t-3xl p-6 gap-4 border-t max-h-[85%] ${
-              isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
-            }`}
-          >
-            <View className={`flex-row justify-between items-center pb-2 border-b ${
-              isDark ? "border-slate-800" : "border-slate-100"
-            }`}>
-              <View className="flex-row items-center gap-2">
-                <View className={`w-8 h-8 rounded-lg items-center justify-center ${
-                  isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
-                }`}>
-                  <Pencil size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
-                </View>
-                <Text className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-foreground"}`}>Edit Project</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowEditModal(false)}
-                className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
-              >
-                <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              contentContainerClassName="gap-4 pb-6"
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <View className="flex-1 justify-end bg-black/60">
+            <View
+              style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
+              className={`rounded-t-3xl p-6 gap-4 border-t max-h-[85%] ${
+                isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
+              }`}
             >
-              <View className="gap-1.5">
-                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Project Name</Text>
-                <TextInput
-                  value={projectName}
-                  onChangeText={(val) => {
-                    setProjectName(val);
-                    validateField("projectName", val);
-                  }}
-                  placeholder="Project name"
-                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                  className={`h-11 px-3 border rounded-[14px] text-base ${
-                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
-                  }`}
-                />
-                {errors.projectName && <Text className="text-xs text-red-500">{errors.projectName}</Text>}
-              </View>
-
-              <View className="flex-row gap-3">
-                <View className="flex-1 gap-1.5">
-                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Client Name</Text>
-                  <TextInput
-                    value={client}
-                    onChangeText={setClient}
-                    placeholder="Client"
-                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                    className={`h-11 px-3 border rounded-[14px] text-base ${
-                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
-                    }`}
-                  />
+              <View className={`flex-row justify-between items-center pb-2 border-b ${
+                isDark ? "border-slate-800" : "border-slate-100"
+              }`}>
+                <View className="flex-row items-center gap-2">
+                  <View className={`w-8 h-8 rounded-lg items-center justify-center ${
+                    isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
+                  }`}>
+                    <Pencil size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
+                  </View>
+                  <Text className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-foreground"}`}>Edit Project</Text>
                 </View>
-                <View className="flex-1 gap-1.5">
-                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Location</Text>
-                  <TextInput
-                    value={location}
-                    onChangeText={setLocation}
-                    placeholder="Location"
-                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                    className={`h-11 px-3 border rounded-[14px] text-base ${
-                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
-                    }`}
-                  />
-                </View>
+                <TouchableOpacity
+                  onPress={() => setShowEditModal(false)}
+                  className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
+                >
+                  <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
+                </TouchableOpacity>
               </View>
 
-              <View className="flex-row gap-3">
-                <DatePickerField
-                  value={startDate}
-                  onChange={(d) => setStartDate(d)}
-                  label="Start Date"
-                />
-                <DatePickerField
-                  value={expectedEnd}
-                  onChange={(d) => setExpectedEnd(d)}
-                  label="Expected End"
-                />
-              </View>
-
-              <View className="flex-row gap-3">
-                <View className="flex-1 gap-1.5">
-                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Contract Value (₹)</Text>
+              <ScrollView
+                contentContainerClassName="gap-4 pb-6"
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <View className="gap-1.5">
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Project Name</Text>
                   <TextInput
-                    value={contractValue}
+                    value={projectName}
                     onChangeText={(val) => {
-                      const cleaned = val.replace(/[^0-9]/g, "");
-                      setContractValue(cleaned);
-                      validateField("contractValue", cleaned);
+                      setProjectName(val);
+                      validateField("projectName", val);
                     }}
-                    placeholder="Contract value"
+                    placeholder="Project name"
                     placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                    keyboardType="number-pad"
                     className={`h-11 px-3 border rounded-[14px] text-base ${
                       isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
                     }`}
                   />
-                  {errors.contractValue && <Text className="text-xs text-red-500">{errors.contractValue}</Text>}
+                  {errors.projectName && <Text className="text-xs text-red-500">{errors.projectName}</Text>}
                 </View>
-                <View className="flex-1 gap-1.5">
-                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Progress Pct (%)</Text>
-                  <TextInput
-                    value={String(progressPct)}
-                    onChangeText={(val) => setProgressPct(Math.min(100, Math.max(0, Number(val) || 0)))}
-                    placeholder="e.g. 50"
-                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                    keyboardType="numeric"
-                    className={`h-11 px-3 border rounded-[14px] text-base ${
-                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
-                    }`}
-                  />
-                </View>
-              </View>
 
-              {/* Status Select Grid */}
-              <View className="gap-1.5">
-                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Select Status</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {(["planning", "active", "on_hold", "completed"] as const).map((st) => (
-                    <TouchableOpacity
-                      key={st}
-                      onPress={() => setStatus(st)}
-                      className={`py-2 px-3 border rounded-[14px] flex-1 min-w-[100px] items-center ${
-                        status === st
-                          ? isDark
-                            ? "bg-[#B8CAD9] border-[#B8CAD9]"
-                            : "bg-[#173B6C] border-[#173B6C]"
-                          : isDark
-                            ? "bg-slate-800 border-slate-700"
-                            : "bg-white border-slate-200"
+                <View className="flex-row gap-3">
+                  <View className="flex-1 gap-1.5">
+                    <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Client Name</Text>
+                    <TextInput
+                      value={client}
+                      onChangeText={setClient}
+                      placeholder="Client"
+                      placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                      className={`h-11 px-3 border rounded-[14px] text-base ${
+                        isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
                       }`}
-                    >
-                      <Text
-                        className={`text-xs font-semibold capitalize ${
+                    />
+                  </View>
+                  <View className="flex-1 gap-1.5">
+                    <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Location</Text>
+                    <TextInput
+                      value={location}
+                      onChangeText={setLocation}
+                      placeholder="Location"
+                      placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                      className={`h-11 px-3 border rounded-[14px] text-base ${
+                        isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                      }`}
+                    />
+                  </View>
+                </View>
+
+                <View className="flex-row gap-3">
+                  <DatePickerField
+                    value={startDate}
+                    onChange={(d) => setStartDate(d)}
+                    label="Start Date"
+                  />
+                  <DatePickerField
+                    value={expectedEnd}
+                    onChange={(d) => setExpectedEnd(d)}
+                    label="Expected End"
+                  />
+                </View>
+
+                <View className="flex-row gap-3">
+                  <View className="flex-1 gap-1.5">
+                    <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Contract Value (₹)</Text>
+                    <TextInput
+                      value={contractValue}
+                      onChangeText={(val) => {
+                        const cleaned = val.replace(/[^0-9]/g, "");
+                        setContractValue(cleaned);
+                        validateField("contractValue", cleaned);
+                      }}
+                      placeholder="Contract value"
+                      placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                      keyboardType="number-pad"
+                      className={`h-11 px-3 border rounded-[14px] text-base ${
+                        isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                      }`}
+                    />
+                    {errors.contractValue && <Text className="text-xs text-red-500">{errors.contractValue}</Text>}
+                  </View>
+                  <View className="flex-1 gap-1.5">
+                    <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Progress Pct (%)</Text>
+                    <TextInput
+                      value={String(progressPct)}
+                      onChangeText={(val) => setProgressPct(Math.min(100, Math.max(0, Number(val) || 0)))}
+                      placeholder="e.g. 50"
+                      placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                      keyboardType="numeric"
+                      className={`h-11 px-3 border rounded-[14px] text-base ${
+                        isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                      }`}
+                    />
+                  </View>
+                </View>
+
+                {/* Status Select Grid */}
+                <View className="gap-1.5">
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Select Status</Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {(["planning", "active", "on_hold", "completed"] as const).map((st) => (
+                      <TouchableOpacity
+                        key={st}
+                        onPress={() => setStatus(st)}
+                        className={`py-2 px-3 border rounded-[14px] flex-1 min-w-[100px] items-center ${
                           status === st
                             ? isDark
-                              ? "text-slate-900"
-                              : "text-white"
+                              ? "bg-[#B8CAD9] border-[#B8CAD9]"
+                              : "bg-[#173B6C] border-[#173B6C]"
                             : isDark
-                              ? "text-slate-400"
-                              : "text-slate-655"
+                              ? "bg-slate-800 border-slate-700"
+                              : "bg-white border-slate-200"
                         }`}
                       >
-                        {STATUS_LABEL[st]}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          className={`text-xs font-semibold capitalize ${
+                            status === st
+                              ? isDark
+                                ? "text-slate-900"
+                                : "text-white"
+                              : isDark
+                                ? "text-slate-400"
+                                : "text-slate-655"
+                          }`}
+                        >
+                          {STATUS_LABEL[st]}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
 
-              <View className="gap-1.5">
-                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Internal Notes</Text>
-                <TextInput
-                  value={notes}
-                  onChangeText={setNotes}
-                  placeholder="Internal comments..."
-                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                  multiline
-                  numberOfLines={3}
-                  className={`px-3 py-2 border rounded-[14px] text-base min-h-[80px] ${
-                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                <View className="gap-1.5">
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Internal Notes</Text>
+                  <TextInput
+                    value={notes}
+                    onChangeText={setNotes}
+                    placeholder="Internal comments..."
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                    multiline
+                    numberOfLines={3}
+                    className={`px-3 py-2 border rounded-[14px] text-base min-h-[80px] ${
+                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                    }`}
+                  />
+                </View>
+              </ScrollView>
+
+              <View className={`flex-row gap-3 pt-3 border-t ${isDark ? "border-slate-800" : "border-slate-100"}`}>
+                <TouchableOpacity
+                  onPress={() => setShowEditModal(false)}
+                  className={`flex-1 h-12 rounded-[14px] border justify-center items-center ${
+                    isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
                   }`}
-                />
+                >
+                  <Text className={`text-base font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSaveEdit}
+                  disabled={updateMutation.isPending}
+                  className={`flex-1 h-12 rounded-[14px] justify-center items-center ${
+                    isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
+                  } ${updateMutation.isPending ? "opacity-50" : ""}`}
+                >
+                  {updateMutation.isPending ? (
+                    <ActivityIndicator size="small" color={isDark ? "#1E293B" : "#FFFFFF"} />
+                  ) : (
+                    <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>Saving...</Text>
+                  )}
+                </TouchableOpacity>
               </View>
-            </ScrollView>
-
-            <View className={`flex-row gap-3 pt-3 border-t ${isDark ? "border-slate-800" : "border-slate-100"}`}>
-              <TouchableOpacity
-                onPress={() => setShowEditModal(false)}
-                className={`flex-1 h-12 rounded-[14px] border justify-center items-center ${
-                  isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
-                }`}
-              >
-                <Text className={`text-base font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleSaveEdit}
-                disabled={updateMutation.isPending}
-                className={`flex-1 h-12 rounded-[14px] justify-center items-center ${
-                  isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
-                } ${updateMutation.isPending ? "opacity-50" : ""}`}
-              >
-                {updateMutation.isPending ? (
-                  <ActivityIndicator size="small" color={isDark ? "#1E293B" : "#FFFFFF"} />
-                ) : (
-                  <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>Saving...</Text>
-                )}
-              </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Assign Crew Modal */}
@@ -1066,137 +1073,146 @@ export default function ProjectDetailScreen() {
 
       {/* Add Site Update Modal */}
       <Modal visible={showUpdateModal} animationType="slide" transparent onRequestClose={() => setShowUpdateModal(false)}>
-        <View className="flex-1 justify-end bg-black/60">
-          <View
-            style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
-            className={`rounded-t-3xl p-6 gap-4 border-t ${
-              isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
-            }`}
-          >
-            {/* Header */}
-            <View className={`flex-row justify-between items-center pb-2 border-b ${
-              isDark ? "border-slate-800" : "border-slate-100"
-            }`}>
-              <View className="flex-row items-center gap-2">
-                <View className={`w-8 h-8 rounded-lg items-center justify-center ${
-                  isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
-                }`}>
-                  <MessageSquare size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <View className="flex-1 justify-end bg-black/60">
+            <View
+              style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
+              className={`rounded-t-3xl p-6 gap-4 border-t max-h-[85%] ${
+                isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
+              }`}
+            >
+              {/* Header */}
+              <View className={`flex-row justify-between items-center pb-2 border-b ${
+                isDark ? "border-slate-800" : "border-slate-100"
+              }`}>
+                <View className="flex-row items-center gap-2">
+                  <View className={`w-8 h-8 rounded-lg items-center justify-center ${
+                    isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
+                  }`}>
+                    <MessageSquare size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
+                  </View>
+                  <Text className={`text-lg font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>Add Site Update</Text>
                 </View>
-                <Text className={`text-lg font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>Add Site Update</Text>
+                <TouchableOpacity
+                  onPress={() => setShowUpdateModal(false)}
+                  className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
+                >
+                  <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                onPress={() => setShowUpdateModal(false)}
-                className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
+
+              {/* Form */}
+              <ScrollView
+                contentContainerClassName="gap-4 pb-6"
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
               >
-                <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
-              </TouchableOpacity>
-            </View>
+                <View className="gap-1.5">
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Update Description</Text>
+                  <TextInput
+                    value={updateNote}
+                    onChangeText={(val) => {
+                      setUpdateNote(val);
+                      validateField("updateNote", val);
+                    }}
+                    placeholder="e.g. Plastering work started, Slab pouring completed..."
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                    multiline
+                    numberOfLines={3}
+                    className={`px-3 py-2 border rounded-[14px] text-base min-h-[80px] ${
+                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                    }`}
+                  />
+                  {errors.updateNote && <Text className="text-xs text-red-500">{errors.updateNote}</Text>}
+                </View>
 
-            {/* Form */}
-            <View className="gap-4">
-              <View className="gap-1.5">
-                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Update Description</Text>
-                <TextInput
-                  value={updateNote}
-                  onChangeText={(val) => {
-                    setUpdateNote(val);
-                    validateField("updateNote", val);
-                  }}
-                  placeholder="e.g. Plastering work started, Slab pouring completed..."
-                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                  multiline
-                  numberOfLines={3}
-                  className={`px-3 py-2 border rounded-[14px] text-base min-h-[80px] ${
-                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
-                  }`}
-                />
-                {errors.updateNote && <Text className="text-xs text-red-500">{errors.updateNote}</Text>}
-              </View>
+                {/* Site Photo Selection */}
+                <View className="gap-1.5">
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Site Photo (optional)</Text>
+                  <View className="flex-row items-center gap-3">
+                    <TouchableOpacity
+                      onPress={handlePickUpdatePhoto}
+                      className={`border border-dashed rounded-xl px-4 py-3 flex-row items-center gap-2 ${
+                        isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+                      }`}
+                    >
+                      <ImageIcon size={16} color={isDark ? "#B8CAD9" : "#1E3A5F"} />
+                      <Text className={`text-xs font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Select Image</Text>
+                    </TouchableOpacity>
+                    {selectedPhotoUri && (
+                      <View className={`flex-row items-center gap-1.5 rounded-lg px-2.5 py-1.5 flex-1 pr-6 relative ${
+                        isDark ? "bg-slate-800" : "bg-slate-100"
+                      }`}>
+                        <Text className={`text-xs truncate flex-1 ${isDark ? "text-slate-300" : "text-slate-600"}`} numberOfLines={1}>
+                          {selectedPhotoName}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setSelectedPhotoUri(null);
+                            setSelectedPhotoName(null);
+                            setSelectedPhotoType(null);
+                          }}
+                          className={`absolute right-1 p-0.5 rounded-full ${isDark ? "bg-slate-700" : "bg-slate-200"}`}
+                        >
+                          <X size={10} color={isDark ? "#94A3B8" : "#64748B"} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
 
-              {/* Site Photo Selection */}
-              <View className="gap-1.5">
-                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Site Photo (optional)</Text>
-                <View className="flex-row items-center gap-3">
-                  <TouchableOpacity
-                    onPress={handlePickUpdatePhoto}
-                    className={`border border-dashed rounded-xl px-4 py-3 flex-row items-center gap-2 ${
-                      isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+                {/* Milestone Checkbox */}
+                <TouchableOpacity
+                  onPress={() => setIsMilestone(!isMilestone)}
+                  className="flex-row items-center gap-2 py-1"
+                >
+                  <View
+                    className={`w-5 h-5 rounded border items-center justify-center ${
+                      isMilestone
+                        ? isDark
+                          ? "bg-[#B8CAD9] border-[#B8CAD9]"
+                          : "bg-primary border-primary"
+                        : isDark
+                          ? "border-slate-700"
+                          : "border-slate-300"
                     }`}
                   >
-                    <ImageIcon size={16} color={isDark ? "#B8CAD9" : "#1E3A5F"} />
-                    <Text className={`text-xs font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Select Image</Text>
-                  </TouchableOpacity>
-                  {selectedPhotoUri && (
-                    <View className={`flex-row items-center gap-1.5 rounded-lg px-2.5 py-1.5 flex-1 pr-6 relative ${
-                      isDark ? "bg-slate-800" : "bg-slate-100"
-                    }`}>
-                      <Text className={`text-xs truncate flex-1 ${isDark ? "text-slate-300" : "text-slate-600"}`} numberOfLines={1}>
-                        {selectedPhotoName}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setSelectedPhotoUri(null);
-                          setSelectedPhotoName(null);
-                          setSelectedPhotoType(null);
-                        }}
-                        className={`absolute right-1 p-0.5 rounded-full ${isDark ? "bg-slate-700" : "bg-slate-200"}`}
-                      >
-                        <X size={10} color={isDark ? "#94A3B8" : "#64748B"} />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              </View>
+                    {isMilestone && <Text className={`${isDark ? "text-slate-900" : "text-white"} text-[10px] font-bold`}>✓</Text>}
+                  </View>
+                  <Text className={`text-sm font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`}>Mark as Milestone</Text>
+                </TouchableOpacity>
+              </ScrollView>
 
-              {/* Milestone Checkbox */}
-              <TouchableOpacity
-                onPress={() => setIsMilestone(!isMilestone)}
-                className="flex-row items-center gap-2 py-1"
-              >
-                <View
-                  className={`w-5 h-5 rounded border items-center justify-center ${
-                    isMilestone
-                      ? isDark
-                        ? "bg-[#B8CAD9] border-[#B8CAD9]"
-                        : "bg-primary border-primary"
-                      : isDark
-                        ? "border-slate-700"
-                        : "border-slate-300"
+              {/* Footer */}
+              <View className={`flex-row gap-3 pt-3 border-t ${isDark ? "border-slate-800" : "border-slate-100"}`}>
+                <TouchableOpacity
+                  onPress={() => setShowUpdateModal(false)}
+                  className={`flex-1 h-12 rounded-[14px] border justify-center items-center ${
+                    isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
                   }`}
                 >
-                  {isMilestone && <Text className={`${isDark ? "text-slate-900" : "text-white"} text-[10px] font-bold`}>✓</Text>}
-                </View>
-                <Text className={`text-sm font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`}>Mark as Milestone</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Footer */}
-            <View className={`flex-row gap-3 pt-3 border-t ${isDark ? "border-slate-800" : "border-slate-100"}`}>
-              <TouchableOpacity
-                onPress={() => setShowUpdateModal(false)}
-                className={`flex-1 h-12 rounded-[14px] border justify-center items-center ${
-                  isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
-                }`}
-              >
-                <Text className={`text-base font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleSaveUpdate}
-                disabled={uploadingUpdatePhoto || addUpdateMutation.isPending}
-                className={`flex-1 h-12 rounded-[14px] justify-center items-center ${
-                  isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
-                } ${(uploadingUpdatePhoto || addUpdateMutation.isPending) ? "opacity-50" : ""}`}
-              >
-                {uploadingUpdatePhoto || addUpdateMutation.isPending ? (
-                  <ActivityIndicator size="small" color={isDark ? "#1E293B" : "#FFFFFF"} />
-                ) : (
-                  <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>Saving...</Text>
-                )}
-              </TouchableOpacity>
+                  <Text className={`text-base font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSaveUpdate}
+                  disabled={uploadingUpdatePhoto || addUpdateMutation.isPending}
+                  className={`flex-1 h-12 rounded-[14px] justify-center items-center ${
+                    isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
+                  } ${(uploadingUpdatePhoto || addUpdateMutation.isPending) ? "opacity-50" : ""}`}
+                >
+                  {uploadingUpdatePhoto || addUpdateMutation.isPending ? (
+                    <ActivityIndicator size="small" color={isDark ? "#1E293B" : "#FFFFFF"} />
+                  ) : (
+                    <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>Saving...</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       <Toast visible={toastVisible} message={toastMessage} onHide={() => setToastVisible(false)} />
     </SafeAreaView>

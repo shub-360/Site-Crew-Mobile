@@ -10,6 +10,8 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { DatePickerField } from "@/components/DatePickerField";
@@ -458,232 +460,237 @@ export default function WorkersScreen() {
         transparent={true}
         onRequestClose={closeModal}
       >
-        <View className="flex-1 justify-end bg-black/60">
-          <View
-            style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
-            className={`rounded-t-3xl p-6 gap-4 border-t max-h-[85%] ${
-              isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
-            }`}
-          >
-            {/* Header */}
-            <View className={`flex-row justify-between items-center pb-2 border-b ${
-              isDark ? "border-slate-800" : "border-slate-100"
-            }`}>
-              <View className="flex-row items-center gap-2">
-                <View className={`w-8 h-8 rounded-lg items-center justify-center ${
-                  isDark ? "bg-slate-800" : "bg-slate-100"
-                }`}>
-                  <UserPlus size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
-                </View>
-                <Text className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-slate-800"}`}>
-                  {modalMode === "add" ? "Add Worker" : "Edit Worker"}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={closeModal}
-                className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
-              >
-                <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Scrollable Form */}
-            <ScrollView
-              contentContainerClassName="gap-4 pb-6"
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <View className="flex-1 justify-end bg-black/60">
+            <View
+              style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
+              className={`rounded-t-3xl p-6 gap-4 border-t max-h-[85%] ${
+                isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
+              }`}
             >
-              {/* Full Name */}
-              <View className="gap-1.5">
-                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Full Name</Text>
-                <TextInput
-                  value={fullName}
-                  onChangeText={(val) => {
-                    setFullName(val);
-                    validateField("fullName", val);
-                  }}
-                  placeholder="John Doe"
-                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                  className={`h-11 px-3 border rounded-[14px] text-base ${
-                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
-                  }`}
-                />
-                {errors.fullName && <Text className="text-xs text-red-500">{errors.fullName}</Text>}
-              </View>
-
-              {/* Mobile & Type */}
-              <View className="flex-row gap-3">
-                <View className="flex-1 gap-1.5">
-                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Mobile</Text>
-                  <TextInput
-                    value={mobile}
-                    onChangeText={(val) => {
-                      const cleaned = val.replace(/\D/g, "").slice(0, 10);
-                      setMobile(cleaned);
-                      validateField("mobile", cleaned);
-                    }}
-                    placeholder="9999999999"
-                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                    keyboardType="number-pad"
-                    className={`h-11 px-3 border rounded-[14px] text-base ${
-                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
-                    }`}
-                  />
-                  {errors.mobile && <Text className="text-xs text-red-500">{errors.mobile}</Text>}
-                </View>
-                <View className="flex-1 gap-1.5">
-                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Type / Skill</Text>
-                  <TextInput
-                    value={workerType}
-                    onChangeText={setWorkerType}
-                    placeholder="Mason, Helper..."
-                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                    className={`h-11 px-3 border rounded-[14px] text-base ${
-                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
-                    }`}
-                  />
-                </View>
-              </View>
-
-              {/* Daily Wage & Joining Date */}
-              <View className="flex-row gap-3">
-                <View className="flex-1 gap-1.5">
-                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
-                    Daily Wage (₹)
+              {/* Header */}
+              <View className={`flex-row justify-between items-center pb-2 border-b ${
+                isDark ? "border-slate-800" : "border-slate-100"
+              }`}>
+                <View className="flex-row items-center gap-2">
+                  <View className={`w-8 h-8 rounded-lg items-center justify-center ${
+                    isDark ? "bg-slate-800" : "bg-slate-100"
+                  }`}>
+                    <UserPlus size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
+                  </View>
+                  <Text className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-slate-800"}`}>
+                    {modalMode === "add" ? "Add Worker" : "Edit Worker"}
                   </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={closeModal}
+                  className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
+                >
+                  <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Scrollable Form */}
+              <ScrollView
+                contentContainerClassName="gap-4 pb-6"
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Full Name */}
+                <View className="gap-1.5">
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Full Name</Text>
                   <TextInput
-                    value={dailyWage}
+                    value={fullName}
                     onChangeText={(val) => {
-                      const cleaned = val.replace(/[^0-9]/g, "");
-                      setDailyWage(cleaned);
-                      validateField("dailyWage", cleaned);
+                      setFullName(val);
+                      validateField("fullName", val);
                     }}
-                    placeholder="500"
+                    placeholder="John Doe"
                     placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                    keyboardType="number-pad"
                     className={`h-11 px-3 border rounded-[14px] text-base ${
                       isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
                     }`}
                   />
-                  {errors.dailyWage && <Text className="text-xs text-red-500">{errors.dailyWage}</Text>}
+                  {errors.fullName && <Text className="text-xs text-red-500">{errors.fullName}</Text>}
                 </View>
-                <DatePickerField
-                  value={joiningDate}
-                  onChange={(d) => setJoiningDate(d)}
-                  label="Joining Date"
-                />
-              </View>
 
-              {/* Address */}
-              <View className="gap-1.5">
-                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Address</Text>
-                <TextInput
-                  value={address}
-                  onChangeText={setAddress}
-                  placeholder="Address details"
-                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                  multiline
-                  numberOfLines={2}
-                  className={`px-3 py-2 border rounded-[14px] text-base min-h-[60px] ${
-                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
-                  }`}
-                />
-              </View>
+                {/* Mobile & Type */}
+                <View className="flex-row gap-3">
+                  <View className="flex-1 gap-1.5">
+                    <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Mobile</Text>
+                    <TextInput
+                      value={mobile}
+                      onChangeText={(val) => {
+                        const cleaned = val.replace(/\D/g, "").slice(0, 10);
+                        setMobile(cleaned);
+                        validateField("mobile", cleaned);
+                      }}
+                      placeholder="9999999999"
+                      placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                      keyboardType="number-pad"
+                      className={`h-11 px-3 border rounded-[14px] text-base ${
+                        isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                      }`}
+                    />
+                    {errors.mobile && <Text className="text-xs text-red-500">{errors.mobile}</Text>}
+                  </View>
+                  <View className="flex-1 gap-1.5">
+                    <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Type / Skill</Text>
+                    <TextInput
+                      value={workerType}
+                      onChangeText={setWorkerType}
+                      placeholder="Mason, Helper..."
+                      placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                      className={`h-11 px-3 border rounded-[14px] text-base ${
+                        isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                      }`}
+                    />
+                  </View>
+                </View>
 
-              {/* Status Switcher (Active/Inactive) */}
-              <View className="gap-1.5">
-                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Status</Text>
-                <View className={`flex-row rounded-[14px] p-1 ${
-                  isDark ? "bg-slate-800" : "bg-slate-100"
-                }`}>
-                  <TouchableOpacity
-                    onPress={() => setStatus("active")}
-                    className={`flex-1 py-2 rounded-lg items-center ${
-                      status === "active"
-                        ? isDark
-                          ? "bg-slate-700"
-                          : "bg-white"
-                        : ""
+                {/* Daily Wage & Joining Date */}
+                <View className="flex-row gap-3">
+                  <View className="flex-1 gap-1.5">
+                    <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                      Daily Wage (₹)
+                    </Text>
+                    <TextInput
+                      value={dailyWage}
+                      onChangeText={(val) => {
+                        const cleaned = val.replace(/[^0-9]/g, "");
+                        setDailyWage(cleaned);
+                        validateField("dailyWage", cleaned);
+                      }}
+                      placeholder="500"
+                      placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                      keyboardType="number-pad"
+                      className={`h-11 px-3 border rounded-[14px] text-base ${
+                        isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                      }`}
+                    />
+                    {errors.dailyWage && <Text className="text-xs text-red-500">{errors.dailyWage}</Text>}
+                  </View>
+                  <DatePickerField
+                    value={joiningDate}
+                    onChange={(d) => setJoiningDate(d)}
+                    label="Joining Date"
+                  />
+                </View>
+
+                {/* Address */}
+                <View className="gap-1.5">
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Address</Text>
+                  <TextInput
+                    value={address}
+                    onChangeText={setAddress}
+                    placeholder="Address details"
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                    multiline
+                    numberOfLines={2}
+                    className={`px-3 py-2 border rounded-[14px] text-base min-h-[60px] ${
+                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
                     }`}
-                    style={
-                      status === "active"
-                        ? isDark
-                          ? { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }
-                          : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1.5, elevation: 1 }
-                        : undefined
-                    }
-                  >
-                    <Text
-                      className={`text-xs font-semibold ${
+                  />
+                </View>
+
+                {/* Status Switcher (Active/Inactive) */}
+                <View className="gap-1.5">
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Status</Text>
+                  <View className={`flex-row rounded-[14px] p-1 ${
+                    isDark ? "bg-slate-800" : "bg-slate-100"
+                  }`}>
+                    <TouchableOpacity
+                      onPress={() => setStatus("active")}
+                      className={`flex-1 py-2 rounded-lg items-center ${
                         status === "active"
                           ? isDark
-                            ? "text-slate-200"
-                            : "text-slate-800"
-                          : "text-slate-500"
+                            ? "bg-slate-700"
+                            : "bg-white"
+                          : ""
                       }`}
+                      style={
+                        status === "active"
+                          ? isDark
+                            ? { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }
+                            : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1.5, elevation: 1 }
+                          : undefined
+                      }
                     >
-                      Active
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setStatus("inactive")}
-                    className={`flex-1 py-2 rounded-lg items-center ${
-                      status === "inactive"
-                        ? isDark
-                          ? "bg-slate-700"
-                          : "bg-white"
-                        : ""
-                    }`}
-                    style={
-                      status === "inactive"
-                        ? isDark
-                          ? { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }
-                          : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1.5, elevation: 1 }
-                        : undefined
-                    }
-                  >
-                    <Text
-                      className={`text-xs font-semibold ${
+                      <Text
+                        className={`text-xs font-semibold ${
+                          status === "active"
+                            ? isDark
+                              ? "text-slate-200"
+                              : "text-slate-800"
+                            : "text-slate-500"
+                        }`}
+                      >
+                        Active
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setStatus("inactive")}
+                      className={`flex-1 py-2 rounded-lg items-center ${
                         status === "inactive"
-                          ? "text-red-500"
-                          : "text-slate-500"
+                          ? isDark
+                            ? "bg-slate-700"
+                            : "bg-white"
+                          : ""
                       }`}
+                      style={
+                        status === "inactive"
+                          ? isDark
+                            ? { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }
+                            : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1.5, elevation: 1 }
+                          : undefined
+                      }
                     >
-                      Inactive
-                    </Text>
-                  </TouchableOpacity>
+                      <Text
+                        className={`text-xs font-semibold ${
+                          status === "inactive"
+                            ? "text-red-500"
+                            : "text-slate-500"
+                        }`}
+                      >
+                        Inactive
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </ScrollView>
+              </ScrollView>
 
-            {/* Footer Actions */}
-            <View className={`flex-row gap-3 pt-3 border-t ${isDark ? "border-slate-800" : "border-slate-100"}`}>
-              <TouchableOpacity
-                onPress={closeModal}
-                className={`flex-1 h-12 rounded-[14px] border justify-center items-center ${
-                  isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
-                }`}
-              >
-                <Text className={`text-base font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleSave}
-                disabled={createMutation.isPending || updateMutation.isPending}
-                className={`flex-1 h-12 rounded-[14px] justify-center items-center ${
-                  isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
-                } ${(createMutation.isPending || updateMutation.isPending) ? "opacity-50" : ""}`}
-              >
-                {createMutation.isPending || updateMutation.isPending ? (
-                  <ActivityIndicator size="small" color={isDark ? "#1E293B" : "#FFFFFF"} />
-                ) : (
-                  <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>
-                    {modalMode === "add" ? "Create Worker" : "Save Changes"}
-                  </Text>
-                )}
-              </TouchableOpacity>
+              {/* Footer Actions */}
+              <View className={`flex-row gap-3 pt-3 border-t ${isDark ? "border-slate-800" : "border-slate-100"}`}>
+                <TouchableOpacity
+                  onPress={closeModal}
+                  className={`flex-1 h-12 rounded-[14px] border justify-center items-center ${
+                    isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
+                  }`}
+                >
+                  <Text className={`text-base font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSave}
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className={`flex-1 h-12 rounded-[14px] justify-center items-center ${
+                    isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
+                  } ${(createMutation.isPending || updateMutation.isPending) ? "opacity-50" : ""}`}
+                >
+                  {createMutation.isPending || updateMutation.isPending ? (
+                    <ActivityIndicator size="small" color={isDark ? "#1E293B" : "#FFFFFF"} />
+                  ) : (
+                    <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>
+                      {modalMode === "add" ? "Create Worker" : "Save Changes"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       <Toast visible={toastVisible} message={toastMessage} onHide={() => setToastVisible(false)} />
     </SafeAreaView>
