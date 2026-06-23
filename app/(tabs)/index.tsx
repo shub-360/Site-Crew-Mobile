@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Modal,
   Image,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
@@ -32,12 +33,19 @@ import {
 import { getDashboardOverview } from "@/lib/stats.functions";
 import { getRecentActivity } from "@/lib/dashboard.functions";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { useThemeStore } from "@/store/theme-store";
+import { useIsDark } from "@/hooks/use-is-dark";
+import { PressableScale } from "@/components/PressableScale";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { user } = useSession();
+  const { profile } = useSession();
   const [refreshing, setRefreshing] = useState(false);
   const [isAboutVisible, setIsAboutVisible] = useState(false);
+
+  const { preference, setPreference } = useThemeStore();
+  const isDark = useIsDark();
 
   const {
     data: k,
@@ -65,33 +73,19 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }
 
+  async function handleLogout() {
+    setIsAboutVisible(false);
+    await supabase.auth.signOut();
+  }
+
   const isLoading = loadingK || loadingAct;
 
-  function getGreeting(name?: string | null) {
+  function getGreetingTimeLabel() {
     const hour = new Date().getHours();
-    let greetingWord = "";
-    let emoji = "👋";
-
-    if (hour >= 5 && hour < 12) {
-      greetingWord = "Good Morning";
-      emoji = "👋";
-    } else if (hour >= 12 && hour < 17) {
-      greetingWord = "Good Afternoon";
-      emoji = "☀️";
-    } else if (hour >= 17 && hour < 22) {
-      greetingWord = "Good Evening";
-      emoji = "🌙";
-    } else {
-      greetingWord = "Hello";
-      emoji = "👋";
-    }
-
-    if (name) {
-      const formattedName = name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-      return `${greetingWord}, ${formattedName} ${emoji}`;
-    } else {
-      return `Hello 👋`;
-    }
+    if (hour >= 5 && hour < 12) return "Good Morning ☀️";
+    if (hour >= 12 && hour < 17) return "Good Afternoon ☀️";
+    if (hour >= 17 && hour < 22) return "Good Evening 🌙";
+    return "Hello 👋";
   }
 
   function getFormattedDate() {
@@ -109,45 +103,50 @@ export default function DashboardScreen() {
         "July", "August", "September", "October", "November", "December"
       ];
       const now = new Date();
-      return `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+      return `${days[now.getDay()]} • ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
     }
   }
 
+  const bgClass = isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]";
+  const cardBorderClass = isDark ? "border-[#334155]" : "border-[#E2E8F0]";
+
   return (
-    <SafeAreaView edges={["left", "right"]} className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["left", "right"]} className={`flex-1 ${bgClass}`}>
       <ScrollView
         contentContainerClassName="px-4 py-6 pb-32"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E3A5F"]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[isDark ? "#B8CAD9" : "#173B6C"]} />
         }
       >
-        {/* Personalized Greeting Header */}
-        <View className="mb-4 pb-4 border-b border-slate-100 flex-row justify-between items-start">
+        {/* Personalized Dynamic Greeting Header */}
+        <View className={`mb-6 pb-5 border-b flex-row justify-between items-start ${isDark ? "border-slate-800" : "border-slate-100"}`}>
           <View className="flex-1 pr-4">
-            <Text className="text-xl font-bold text-slate-800">
-              {getGreeting(user?.user_metadata?.full_name || user?.user_metadata?.display_name || user?.user_metadata?.name)}
+            <Text className={`text-sm font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+              {profile?.full_name ? getGreetingTimeLabel() : "Hello 👋"}
             </Text>
-            <Text className="text-xs text-muted-foreground mt-1">
+            {profile?.full_name && (
+              <Text className={`text-2xl font-bold mt-1.5 ${isDark ? "text-slate-100" : "text-[#173B6C]"}`}>
+                {profile.full_name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+              </Text>
+            )}
+            <Text className={`text-xs mt-2 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               {getFormattedDate()}
             </Text>
           </View>
-          <View className="flex-row items-center gap-2">
-            {isLoading && !refreshing && (
-              <ActivityIndicator size="small" color="#1E3A5F" />
-            )}
-            <TouchableOpacity
-              onPress={() => setIsAboutVisible(true)}
-              className="w-10 h-10 rounded-xl bg-white border border-border items-center justify-center shadow-xs active:bg-slate-50"
-            >
-              <Info size={18} color="#1E3A5F" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => setIsAboutVisible(true)}
+            className={`w-10 h-10 rounded-xl items-center justify-center border shadow-xs ${
+              isDark ? "bg-[#1E293B] border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
+            }`}
+          >
+            <Info size={18} color={isDark ? "#B8CAD9" : "#173B6C"} />
+          </TouchableOpacity>
         </View>
 
         {/* Overview Sub-Header */}
         <View className="mb-5">
-          <Text className="text-2xl font-bold text-foreground">Overview</Text>
-          <Text className="text-xs text-muted-foreground mt-0.5">
+          <Text className={`text-xl font-extrabold ${isDark ? "text-slate-100" : "text-[#173B6C]"}`}>Overview</Text>
+          <Text className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
             Contractor Operations Dashboard
           </Text>
         </View>
@@ -160,12 +159,14 @@ export default function DashboardScreen() {
               label="Active projects"
               value={formatNumber(k?.activeProjects)}
               className="flex-1"
+              isDark={isDark}
             />
             <KpiCard
               icon={Users}
               label="Total workers"
               value={formatNumber(k?.totalWorkers)}
               className="flex-1"
+              isDark={isDark}
             />
           </View>
           <View className="flex-row gap-3">
@@ -175,92 +176,116 @@ export default function DashboardScreen() {
               value={formatNumber(k?.presentToday)}
               tone="success"
               className="flex-1"
+              isDark={isDark}
             />
             <KpiCard
               icon={Banknote}
               label="Month labour cost"
               value={formatCurrency(k?.monthLabourCost)}
               className="flex-1"
+              isDark={isDark}
             />
           </View>
         </View>
 
         {/* Quick Actions */}
         <View className="mb-6">
-          <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-3">
+          <Text className={`text-xs uppercase font-bold tracking-wider mb-3 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
             Quick Actions
           </Text>
           <View className="flex-row gap-2 flex-wrap">
             <QuickAction
               icon={CalendarCheck2}
-              label="Mark Attendance"
+              label="Attendance"
               onPress={() => router.push("/(tabs)/attendance")}
+              isDark={isDark}
             />
             <QuickAction
               icon={Plus}
               label="Add Project"
               onPress={() => router.push("/(tabs)/projects")}
+              isDark={isDark}
             />
             <QuickAction
               icon={UserPlus}
               label="Add Worker"
               onPress={() => router.push("/(tabs)/workers")}
+              isDark={isDark}
             />
             <QuickAction
               icon={FileSpreadsheet}
               label="Reports"
               onPress={() => router.push("/(tabs)/reports")}
+              isDark={isDark}
             />
           </View>
         </View>
 
         {/* Site Status */}
         <View className="mb-6">
-          <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-3">
+          <Text className={`text-xs uppercase font-bold tracking-wider mb-3 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
             Site Status
           </Text>
-          <View className="bg-white rounded-2xl border border-border overflow-hidden">
+          <View className={`rounded-2xl border overflow-hidden ${isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-100"}`}>
             {(!k?.sites || k.sites.length === 0) && !isLoading && (
-              <Text className="p-6 text-sm text-muted-foreground text-center">
-                No active projects yet.
-              </Text>
+              <View className="p-8 items-center justify-center gap-2">
+                <Text className="text-3xl mb-1">🏗️</Text>
+                <Text className={`text-sm font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
+                  No Projects Yet
+                </Text>
+                <Text className={`text-xs text-center mb-3 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                  Create your first construction site.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push("/(tabs)/projects")}
+                  className={`px-4 py-2 rounded-xl border ${
+                    isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
+                  }`}
+                >
+                  <Text className={`text-xs font-bold ${isDark ? "text-[#B8CAD9]" : "text-[#173B6C]"}`}>
+                    Create Project
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
-            {(k?.sites ?? []).map((s) => (
-              <TouchableOpacity
-                key={s.id}
-                onPress={() => router.push(`/projects/${s.id}` as any)}
-                className="p-4 border-b border-slate-100 flex-row justify-between items-center active:bg-slate-50"
-              >
-                <View className="flex-1 pr-2">
-                  <Text className="font-semibold text-foreground text-base truncate">
-                    {s.name}
-                  </Text>
-                  <Text className="text-xs text-muted-foreground truncate mb-2">
-                    {s.location || "No location"}
-                  </Text>
-                  <View className="flex-row gap-3">
-                    <Text className="text-xs text-muted-foreground">
-                      <Text className="text-slate-800 font-medium">{s.assigned}</Text> assigned
-                    </Text>
-                    <Text className="text-xs text-muted-foreground">
-                      <Text className="text-slate-800 font-medium">{s.presentToday}</Text> present today
-                    </Text>
+            {(k?.sites ?? []).map((s) => {
+              const isActive = s.assigned > 0;
+              const dotColor = isActive ? "bg-green-500" : "bg-slate-300";
+
+              return (
+                <PressableScale
+                  key={s.id}
+                  onPress={() => router.push(`/projects/${s.id}` as any)}
+                  className={`p-4 border-b ${isDark ? "border-slate-800" : "border-slate-50"}`}
+                >
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-1 pr-4">
+                      <View className="flex-row items-center gap-2 mb-1 flex-wrap">
+                        <View className={`w-2 h-2 rounded-full ${dotColor}`} />
+                        <Text className={`font-semibold text-base truncate ${isDark ? "text-slate-200" : "text-slate-800"}`}>
+                          {s.name}
+                        </Text>
+                      </View>
+                      <Text className={`text-xs font-mono font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                        {s.presentToday} / {s.assigned} Workers Present
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center gap-1.5">
+                      <Text className={`text-base font-bold font-mono ${isDark ? "text-[#B8CAD9]" : "text-[#173B6C]"}`}>
+                        {formatCurrency(s.monthCost)}
+                      </Text>
+                      <ChevronRight size={16} color={isDark ? "#64748B" : "#94A3B8"} />
+                    </View>
                   </View>
-                </View>
-                <View className="items-end gap-1 flex-row">
-                  <Text className="text-base font-bold text-primary font-mono">
-                    {formatCurrency(s.monthCost)}
-                  </Text>
-                  <ChevronRight size={16} color="#94A3B8" />
-                </View>
-              </TouchableOpacity>
-            ))}
+                </PressableScale>
+              );
+            })}
           </View>
         </View>
 
         {/* Insights */}
         <View className="mb-6">
-          <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-3">
+          <Text className={`text-xs uppercase font-bold tracking-wider mb-3 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
             Insights
           </Text>
           <View className="gap-3">
@@ -271,6 +296,7 @@ export default function DashboardScreen() {
                 primary={k?.insights?.topProject?.name ?? "—"}
                 secondary={k?.insights?.topProject ? formatCurrency(k.insights.topProject.value) : ""}
                 className="flex-1"
+                isDark={isDark}
               />
               <InsightCard
                 icon={Activity}
@@ -278,6 +304,7 @@ export default function DashboardScreen() {
                 primary={k?.insights?.mostActiveProject?.name ?? "—"}
                 secondary={k?.insights?.mostActiveProject ? `${k.insights.mostActiveProject.days} entries` : ""}
                 className="flex-1"
+                isDark={isDark}
               />
             </View>
             <View className="flex-row gap-3">
@@ -288,6 +315,7 @@ export default function DashboardScreen() {
                 secondary={k?.insights?.topWorker ? formatCurrency(k.insights.topWorker.value) : ""}
                 tone="success"
                 className="flex-1"
+                isDark={isDark}
               />
               <InsightCard
                 icon={AlertTriangle}
@@ -296,32 +324,34 @@ export default function DashboardScreen() {
                 secondary={k?.insights?.lowestWorker ? `${k.insights.lowestWorker.days} days` : ""}
                 tone="warning"
                 className="flex-1"
+                isDark={isDark}
               />
             </View>
           </View>
         </View>
 
         {/* Recent Activity */}
-        <View>
-          <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-3">
+        <View className="mb-4">
+          <Text className={`text-xs uppercase font-bold tracking-wider mb-3 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
             Recent Activity
           </Text>
-          <View className="bg-white rounded-2xl border border-border p-4 gap-4">
+          <View className={`rounded-2xl border p-4 gap-4 ${isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-100"}`}>
             {(!activity || activity.length === 0) && !isLoading && (
               <Text className="text-sm text-muted-foreground">No recent activity.</Text>
             )}
             {(activity ?? []).map((a) => (
               <View key={a.id} className="flex-row gap-3 items-start">
                 <View
-                  className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${a.kind === "attendance"
-                    ? "bg-primary"
-                    : a.kind === "worker"
-                      ? "bg-success"
-                      : "bg-warning"
-                    }`}
+                  className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                    a.kind === "attendance"
+                      ? isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C]"
+                      : a.kind === "worker"
+                        ? "bg-success"
+                        : "bg-[#D4A94A]"
+                  }`}
                 />
                 <View className="flex-1 min-w-0">
-                  <Text className="text-sm text-slate-800 font-medium">
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                     {a.text}
                   </Text>
                   <Text className="text-xs text-muted-foreground mt-0.5">
@@ -334,7 +364,7 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
 
-      {/* About Modal */}
+      {/* About / Settings Modal */}
       <Modal
         visible={isAboutVisible}
         transparent={true}
@@ -342,37 +372,94 @@ export default function DashboardScreen() {
         onRequestClose={() => setIsAboutVisible(false)}
       >
         <View className="flex-1 bg-black/60 justify-center items-center px-6">
-          <View className="bg-white rounded-3xl p-6 w-full max-w-sm border border-border shadow-2xl items-center">
+          <View className={`rounded-3xl p-6 w-full max-w-sm border shadow-2xl items-center ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-150"
+          }`}>
             {/* Logo */}
             <Image
               source={require("../../assets/images/icon.png")}
-              className="w-20 h-20 rounded-2xl mb-4 border border-slate-100"
+              className={`w-16 h-16 rounded-2xl mb-4 border ${
+                isDark ? "border-slate-700" : "border-slate-100"
+              }`}
               resizeMode="contain"
             />
 
             {/* Title & Version */}
-            <Text className="text-xl font-bold text-slate-800">SiteCrew</Text>
-            <Text className="text-xs text-muted-foreground mt-1 mb-5">Version 1.0.0-beta.2</Text>
+            <Text className={`text-xl font-bold ${isDark ? "text-slate-100" : "text-slate-800"}`}>SiteCrew</Text>
+            <Text className="text-xs text-muted-foreground mt-1 mb-4">Version 1.0.0 Beta</Text>
 
-            <View className="w-full h-[1px] bg-slate-100 mb-5" />
+            {/* Theme Selector */}
+            <Text className={`text-[10px] font-bold uppercase tracking-wider mb-2.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+              Theme
+            </Text>
+            <View className={`flex-row p-1 rounded-xl mb-4 w-full ${isDark ? "bg-slate-850" : "bg-slate-100"}`}>
+              {(["light", "dark", "system"] as const).map((modeOption) => (
+                <TouchableOpacity
+                  key={modeOption}
+                  onPress={() => setPreference(modeOption)}
+                  style={
+                    preference === modeOption && !isDark
+                      ? {
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.05,
+                          shadowRadius: 1.5,
+                          elevation: 1,
+                        }
+                      : null
+                  }
+                  className={`flex-1 py-1.5 rounded-lg items-center ${
+                    preference === modeOption
+                      ? isDark
+                        ? "bg-slate-700"
+                        : "bg-white"
+                      : ""
+                  }`}
+                >
+                  <Text
+                    className={`text-[10px] font-bold capitalize ${
+                      preference === modeOption
+                        ? isDark
+                          ? "text-slate-200"
+                          : "text-slate-800"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    {modeOption}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View className={`w-full h-[1px] mb-4 ${isDark ? "bg-slate-700" : "bg-slate-100"}`} />
 
             {/* Credits */}
-            <Text className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">
-              Built with passion by
+            <Text className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+              Built with ❤️ by
             </Text>
-            <Text className="text-sm font-bold text-slate-700 mb-1">Mitali Rawal</Text>
-            <Text className="text-sm font-bold text-slate-700 mb-1">Shubham sharma</Text>
-            <Text className="text-sm font-bold text-slate-700 mb-5">Moksh Rawal</Text>
+            <Text className={`text-sm font-bold mb-0.5 ${isDark ? "text-slate-350" : "text-slate-700"}`}>Mitali Rawal</Text>
+            <Text className={`text-sm font-bold mb-0.5 ${isDark ? "text-slate-350" : "text-slate-700"}`}>Shubham Sharma</Text>
+            <Text className={`text-sm font-bold mb-4 ${isDark ? "text-slate-350" : "text-slate-700"}`}>Moksh Rawal</Text>
 
-            <Text className="text-[10px] text-slate-400 font-medium">© 2026 SiteCrew</Text>
+            <View className={`w-full h-[1px] mb-4 ${isDark ? "bg-slate-700" : "bg-slate-100"}`} />
 
-            {/* Close Button */}
-            <TouchableOpacity
-              onPress={() => setIsAboutVisible(false)}
-              className="w-full bg-slate-900 py-3 rounded-xl items-center mt-6 active:bg-slate-850"
-            >
-              <Text className="text-sm font-bold text-white">Close</Text>
-            </TouchableOpacity>
+            {/* Close & Logout Buttons */}
+            <View className="flex-row gap-3 w-full">
+              <TouchableOpacity
+                onPress={() => setIsAboutVisible(false)}
+                className={`flex-1 py-3 rounded-xl items-center border ${
+                  isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
+                }`}
+              >
+                <Text className={`text-xs font-bold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Close</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleLogout}
+                className="flex-1 bg-red-50 border border-red-150 py-3 rounded-xl items-center active:bg-red-100"
+              >
+                <Text className="text-xs font-bold text-red-600">Logout</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -386,30 +473,35 @@ function KpiCard({
   value,
   tone = "default",
   className = "",
+  isDark = false,
 }: {
   icon: any;
   label: string;
   value: string;
   tone?: "default" | "success" | "warning";
   className?: string;
+  isDark?: boolean;
 }) {
-  const toneColor =
-    tone === "success"
-      ? "text-success"
-      : tone === "warning"
-        ? "text-warning"
-        : "text-primary";
+  const getToneColor = () => {
+    if (tone === "success") return isDark ? "#4ade80" : "#16a34a";
+    if (tone === "warning") return "#D4A94A";
+    return isDark ? "#B8CAD9" : "#173B6C";
+  };
+
+  const cardBg = isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-100";
+  const textColor = isDark ? "text-slate-100" : "text-[#0F172A]";
+  const labelColor = isDark ? "text-slate-400" : "text-slate-500";
 
   return (
-    <View className={`bg-white p-4 rounded-2xl border border-border shadow-sm ${className}`}>
-      <View className="flex-row justify-between items-center mb-1.5">
-        <Text className="text-xs text-muted-foreground font-medium truncate flex-1 pr-1">
-          {label}
+    <View className={`p-4 rounded-2xl border shadow-xs ${cardBg} ${className}`}>
+      <View className="flex-row justify-between items-start mb-2">
+        <Text className={`text-2xl font-extrabold font-mono tracking-tight ${textColor}`} numberOfLines={1}>
+          {value}
         </Text>
-        <Icon size={16} className={toneColor} />
+        <Icon size={18} color={getToneColor()} />
       </View>
-      <Text className="text-lg font-bold text-foreground tracking-tight font-mono" numberOfLines={1}>
-        {value}
+      <Text className={`text-xs font-bold ${labelColor}`}>
+        {label}
       </Text>
     </View>
   );
@@ -422,6 +514,7 @@ function InsightCard({
   secondary,
   tone = "default",
   className = "",
+  isDark = false,
 }: {
   icon: any;
   label: string;
@@ -429,23 +522,27 @@ function InsightCard({
   secondary: string;
   tone?: "default" | "success" | "warning";
   className?: string;
+  isDark?: boolean;
 }) {
-  const toneColor =
-    tone === "success"
-      ? "text-success"
-      : tone === "warning"
-        ? "text-warning"
-        : "text-primary";
+  const getToneColor = () => {
+    if (tone === "success") return isDark ? "#4ade80" : "#16a34a";
+    if (tone === "warning") return "#D4A94A";
+    return isDark ? "#B8CAD9" : "#173B6C";
+  };
+
+  const cardBg = isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-100";
+  const textColor = isDark ? "text-slate-200" : "text-slate-800";
+  const labelColor = isDark ? "text-slate-400" : "text-muted-foreground";
 
   return (
-    <View className={`bg-white p-3 rounded-xl border border-border shadow-sm ${className}`}>
-      <View className="flex-row items-center gap-1.5 mb-1">
-        <Icon size={12} className={toneColor} />
-        <Text className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+    <View className={`p-3 rounded-2xl border shadow-xs ${cardBg} ${className}`}>
+      <View className="flex-row items-center gap-1.5 mb-1.5">
+        <Icon size={12} color={getToneColor()} />
+        <Text className={`text-[10px] uppercase font-bold tracking-wider ${labelColor}`}>
           {label}
         </Text>
       </View>
-      <Text className="text-xs font-semibold text-slate-800 truncate" numberOfLines={1}>
+      <Text className={`text-xs font-bold truncate ${textColor}`} numberOfLines={1}>
         {primary}
       </Text>
       <Text className="text-[10px] text-muted-foreground mt-0.5 font-mono" numberOfLines={1}>
@@ -459,20 +556,25 @@ function QuickAction({
   icon: Icon,
   label,
   onPress,
+  isDark = false,
 }: {
   icon: any;
   label: string;
   onPress: () => void;
+  isDark?: boolean;
 }) {
+  const cardBg = isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-100";
+  const textColor = isDark ? "text-slate-200" : "text-[#173B6C]";
+
   return (
-    <TouchableOpacity
+    <PressableScale
       onPress={onPress}
-      className="flex-1 min-w-[70px] bg-white border border-border rounded-xl p-3 items-center justify-center shadow-xs active:bg-slate-50"
+      className={`flex-1 min-w-[76px] p-4 items-center justify-center border rounded-2xl shadow-xs ${cardBg}`}
     >
-      <Icon size={20} color="#1E3A5F" />
-      <Text className="text-[10px] font-semibold text-slate-800 text-center mt-1.5" numberOfLines={1}>
+      <Icon size={22} color={isDark ? "#B8CAD9" : "#173B6C"} />
+      <Text className={`text-[10px] font-bold text-center mt-2.5 ${textColor}`} numberOfLines={1}>
         {label}
       </Text>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }

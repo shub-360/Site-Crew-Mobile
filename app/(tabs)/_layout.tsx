@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useIsDark } from "@/hooks/use-is-dark";
 import {
   LayoutDashboard,
   HardHat,
@@ -8,37 +9,48 @@ import {
   FileSpreadsheet,
 } from "lucide-react-native";
 
-const ICON_SIZE = 22;
-const ACTIVE_COLOR = "#1E3A5F";
-const INACTIVE_COLOR = "#94A3B8";
+const ICON_SIZE = 20;
 
 /**
- * Bottom tab navigator matching the web app's sidebar navigation.
- * Maps the same 5 main routes:
- *   Dashboard → Projects → Attendance → Workers → Reports
+ * Bottom tab navigator styled as an Apple-inspired capsule floating navigation bar.
  */
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const isDark = useIsDark();
+
+  const activeColor = isDark ? "#B8CAD9" : "#173B6C"; // Steel Blue in dark, Deep Navy in light
+  const inactiveColor = isDark ? "#64748B" : "#94A3B8";
 
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: "#FFFFFF" },
-        headerTitleStyle: { fontWeight: "700", fontSize: 18, color: "#0F172A" },
+        headerStyle: { backgroundColor: isDark ? "#0F172A" : "#FFFFFF" },
+        headerTitleStyle: { fontWeight: "700", fontSize: 18, color: isDark ? "#F8FAFC" : "#0F172A" },
         headerShadowVisible: false,
-        tabBarActiveTintColor: ACTIVE_COLOR,
-        tabBarInactiveTintColor: INACTIVE_COLOR,
+        tabBarActiveTintColor: activeColor,
+        tabBarInactiveTintColor: inactiveColor,
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopColor: "#E2E8F0",
-          borderTopWidth: 1,
-          paddingTop: 6,
-          paddingBottom: insets.bottom > 0 ? insets.bottom + 4 : 8,
-          height: 56 + (insets.bottom > 0 ? insets.bottom : 8),
+          position: "absolute",
+          backgroundColor: isDark ? "rgba(30, 41, 59, 0.92)" : "rgba(255, 255, 255, 0.92)",
+          borderWidth: 1,
+          borderColor: isDark ? "#334155" : "#E2E8F0",
+          bottom: insets.bottom > 0 ? insets.bottom : 12,
+          left: 16,
+          right: 16,
+          borderRadius: 32,
+          height: 64,
+          paddingTop: 8,
+          paddingBottom: 8,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: isDark ? 0.25 : 0.08,
+          shadowRadius: 16,
+          elevation: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
+          fontSize: 10,
+          fontWeight: "700",
+          marginTop: 2,
         },
       }}
     >

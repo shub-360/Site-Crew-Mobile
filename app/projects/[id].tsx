@@ -55,6 +55,7 @@ import { recordQuotation, deleteQuotation } from "@/lib/quotations.functions";
 import { uploadProjectFile } from "@/lib/upload";
 import { formatCurrency } from "@/lib/format";
 import { handleApiError } from "@/lib/errors";
+import { useIsDark } from "@/hooks/use-is-dark";
 
 
 type ProjectStatus = "planning" | "active" | "on_hold" | "completed";
@@ -71,6 +72,7 @@ export default function ProjectDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
+  const isDark = useIsDark();
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toastVisible, setToastVisible] = useState(false);
@@ -259,24 +261,28 @@ export default function ProjectDetailScreen() {
 
   if (loadingDetail && !detail) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center">
-        <ActivityIndicator size="large" color="#1E3A5F" />
+      <SafeAreaView className={`flex-1 justify-center items-center ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
+        <ActivityIndicator size="large" color={isDark ? "#B8CAD9" : "#173B6C"} />
       </SafeAreaView>
     );
   }
 
   if (!detail) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center px-6">
-        <Text className="text-base text-muted-foreground text-center">
+      <SafeAreaView className={`flex-1 justify-center items-center px-6 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
+        <Text className={`text-base text-center ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
           Project detail not found or loading failed.
         </Text>
-        <TouchableOpacity onPress={() => router.back()} className="mt-4 bg-primary px-6 py-2.5 rounded-xl">
-          <Text className="text-white font-semibold">Go Back</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className={`mt-4 px-6 py-2.5 rounded-[14px] ${isDark ? "bg-slate-800" : "bg-[#173B6C]"}`}
+        >
+          <Text className={`font-semibold ${isDark ? "text-[#B8CAD9]" : "text-white"}`}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
+
 
   const p = detail.project;
   const currentQuote = detail.quotations.find((q) => q.is_current);
@@ -390,7 +396,7 @@ export default function ProjectDetailScreen() {
       }
 
       const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         quality: 0.8,
       });
 
@@ -439,83 +445,103 @@ export default function ProjectDetailScreen() {
   const availableWorkersForAssign = allWorkers.filter((w) => w.status === "active" && !assignedWorkerIds.has(w.id));
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
       {/* Top Header */}
-      <View className="px-4 py-3 bg-white border-b border-slate-100 flex-row items-center justify-between">
-        <TouchableOpacity onPress={() => router.back()} className="p-1 rounded-full bg-slate-100">
-          <ArrowLeft size={20} color="#64748B" />
+      <View className={`px-4 py-3 border-b flex-row items-center justify-between ${
+        isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-slate-100"
+      }`}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
+        >
+          <ArrowLeft size={20} color={isDark ? "#B8CAD9" : "#64748B"} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold text-slate-800 flex-1 ml-3 truncate" numberOfLines={1}>
+        <Text className={`text-lg font-bold flex-1 ml-3 truncate ${isDark ? "text-slate-200" : "text-slate-800"}`} numberOfLines={1}>
           {p.name}
         </Text>
         <View className="flex-row gap-2">
-          <TouchableOpacity onPress={handleOpenEdit} className="p-2 rounded-full bg-slate-100 active:bg-slate-200">
-            <Pencil size={16} color="#64748B" />
+          <TouchableOpacity
+            onPress={handleOpenEdit}
+            className={`p-2 rounded-full ${isDark ? "bg-slate-800 active:bg-slate-700" : "bg-slate-100 active:bg-slate-200"}`}
+          >
+            <Pencil size={16} color={isDark ? "#B8CAD9" : "#64748B"} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDeleteProject} className="p-2 rounded-full bg-red-50 active:bg-red-100">
-            <Trash2 size={16} color="#EF4444" />
+          <TouchableOpacity
+            onPress={handleDeleteProject}
+            className={`p-2 rounded-full ${
+              isDark ? "bg-red-950/40 border border-red-900/60 active:bg-red-950" : "bg-red-50 active:bg-red-100"
+            }`}
+          >
+            <Trash2 size={16} color={isDark ? "#F87171" : "#EF4444"} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView contentContainerClassName="px-4 py-5 gap-5 pb-12">
         {/* Project Card Info */}
-        <View className="bg-white border border-border rounded-2xl p-5 shadow-xs gap-4">
+        <View className={`border rounded-2xl p-5 shadow-xs gap-4 ${
+          isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+        }`}>
           <View className="flex-row justify-between items-start">
             <View className="flex-1 pr-3">
               <View className="flex-row items-center gap-2 mb-1 flex-wrap">
-                <Text className="text-lg font-bold text-slate-800">{p.name}</Text>
-                <View className="bg-primary/5 border border-primary/20 px-2.5 py-0.5 rounded-full">
-                  <Text className="text-[10px] font-bold text-primary uppercase">
+                <Text className={`text-lg font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>{p.name}</Text>
+                <View className={`border px-2.5 py-0.5 rounded-full ${
+                  isDark ? "bg-[#B8CAD9]/10 border-[#B8CAD9]/20" : "bg-[#173B6C]/5 border-[#173B6C]/20"
+                }`}>
+                  <Text className={`text-[10px] font-bold uppercase ${isDark ? "text-[#B8CAD9]" : "text-primary"}`}>
                     {STATUS_LABEL[p.status as ProjectStatus]}
                   </Text>
                 </View>
               </View>
               {p.client && (
-                <Text className="text-xs font-semibold text-slate-500">Client: {p.client}</Text>
+                <Text className={`text-xs font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>Client: {p.client}</Text>
               )}
             </View>
           </View>
 
           {/* Location & Dates */}
-          <View className="gap-2.5 border-t border-slate-100 pt-3.5">
+          <View className={`gap-2.5 border-t pt-3.5 ${isDark ? "border-slate-800" : "border-slate-100"}`}>
             {p.location && (
               <View className="flex-row items-center gap-2">
-                <MapPin size={14} color="#64748B" />
-                <Text className="text-xs text-slate-600">{p.location}</Text>
+                <MapPin size={14} color={isDark ? "#B8CAD9" : "#64748B"} />
+                <Text className={`text-xs ${isDark ? "text-slate-300" : "text-slate-600"}`}>{p.location}</Text>
               </View>
             )}
             <View className="flex-row items-center gap-2">
-              <Calendar size={14} color="#64748B" />
-              <Text className="text-xs text-slate-600">
+              <Calendar size={14} color={isDark ? "#B8CAD9" : "#64748B"} />
+              <Text className={`text-xs ${isDark ? "text-slate-300" : "text-slate-600"}`}>
                 Timeline: {p.start_date ? new Date(p.start_date).toLocaleDateString() : "—"} to{" "}
                 {p.expected_end ? new Date(p.expected_end).toLocaleDateString() : "Expected End"}
               </Text>
             </View>
             <View className="flex-row items-center gap-2">
-              <Banknote size={14} color="#64748B" />
-              <Text className="text-xs text-slate-600">
-                Contract: <Text className="font-semibold text-slate-800">{formatCurrency(p.contract_value)}</Text>
+              <Banknote size={14} color={isDark ? "#B8CAD9" : "#64748B"} />
+              <Text className={`text-xs ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+                Contract: <Text className={`font-semibold ${isDark ? "text-slate-200" : "text-slate-800"}`}>{formatCurrency(p.contract_value)}</Text>
               </Text>
             </View>
           </View>
 
           {/* Progress pct */}
-          <View className="gap-1.5 border-t border-slate-100 pt-3.5">
+          <View className={`gap-1.5 border-t pt-3.5 ${isDark ? "border-slate-800" : "border-slate-100"}`}>
             <View className="flex-row justify-between items-center">
-              <Text className="text-xs font-semibold text-slate-500">Project Progress</Text>
-              <Text className="text-xs font-bold text-slate-800 font-mono">{p.progress_pct}%</Text>
+              <Text className={`text-xs font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>Project Progress</Text>
+              <Text className={`text-xs font-bold font-mono ${isDark ? "text-slate-200" : "text-slate-800"}`}>{p.progress_pct}%</Text>
             </View>
-            <View className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
-              <View className="h-full bg-primary rounded-full" style={{ width: `${p.progress_pct}%` }} />
+            <View className={`h-2.5 w-full rounded-full overflow-hidden ${isDark ? "bg-slate-800" : "bg-slate-100"}`}>
+              <View
+                className={`h-full rounded-full ${isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C]"}`}
+                style={{ width: `${p.progress_pct}%` }}
+              />
             </View>
           </View>
 
           {/* Notes */}
           {p.notes && (
-            <View className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <Text className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Internal Notes</Text>
-              <Text className="text-xs text-slate-600 leading-normal">{p.notes}</Text>
+            <View className={`p-3 rounded-xl border ${isDark ? "bg-slate-800/60 border-slate-750" : "bg-slate-50 border-slate-100"}`}>
+              <Text className={`text-[10px] uppercase font-bold mb-1 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>Internal Notes</Text>
+              <Text className={`text-xs leading-normal ${isDark ? "text-slate-300" : "text-slate-600"}`}>{p.notes}</Text>
             </View>
           )}
         </View>
@@ -523,20 +549,28 @@ export default function ProjectDetailScreen() {
         {/* Stats Row */}
         {stats && (
           <View className="flex-row gap-3">
-            <View className="flex-1 bg-white border border-border rounded-2xl p-4 shadow-xs items-center">
-              <Users size={18} color="#1E3A5F" />
-              <Text className="text-lg font-bold text-slate-800 mt-1 font-mono">{stats.assignedCount}</Text>
-              <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Assigned</Text>
+            <View className={`flex-1 border rounded-2xl p-4 shadow-xs items-center ${
+              isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+            }`}>
+              <Users size={18} color={isDark ? "#B8CAD9" : "#1E3A5F"} />
+              <Text className={`text-lg font-bold mt-1 font-mono ${isDark ? "text-slate-200" : "text-slate-800"}`}>{stats.assignedCount}</Text>
+              <Text className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isDark ? "text-slate-450" : "text-slate-400"}`}>Assigned</Text>
             </View>
-            <View className="flex-1 bg-white border border-border rounded-2xl p-4 shadow-xs items-center">
-              <Text className="text-lg font-bold text-success mt-1 font-mono">{stats.presentToday}</Text>
-              <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Present Today</Text>
+            <View className={`flex-1 border rounded-2xl p-4 shadow-xs items-center ${
+              isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+            }`}>
+              <Users size={18} color={isDark ? "#4ade80" : "#16a34a"} />
+              <Text className={`text-lg font-bold mt-1 font-mono ${isDark ? "text-green-400" : "text-green-600"}`}>{stats.presentToday}</Text>
+              <Text className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isDark ? "text-slate-450" : "text-slate-400"}`}>Present Today</Text>
             </View>
-            <View className="flex-1 bg-white border border-border rounded-2xl p-4 shadow-xs items-center">
-              <Text className="text-sm font-bold text-slate-800 mt-2 font-mono truncate max-w-full">
+            <View className={`flex-1 border rounded-2xl p-4 shadow-xs items-center ${
+              isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+            }`}>
+              <Banknote size={18} color={isDark ? "#B8CAD9" : "#1E3A5F"} />
+              <Text className={`text-sm font-bold mt-2 font-mono truncate max-w-full ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                 {formatCurrency(stats.monthCost)}
               </Text>
-              <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1.5">Labour Cost</Text>
+              <Text className={`text-[10px] font-bold uppercase tracking-wider mt-1.5 ${isDark ? "text-slate-450" : "text-slate-400"}`}>Labour Cost</Text>
             </View>
           </View>
         )}
@@ -544,34 +578,38 @@ export default function ProjectDetailScreen() {
         {/* Active Workforce / Crew */}
         <View className="gap-2">
           <View className="flex-row justify-between items-center mb-1">
-            <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
+            <Text className={`text-xs uppercase font-bold tracking-wider ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
               Workforce / Crew
             </Text>
             <TouchableOpacity
               onPress={() => setShowAssignModal(true)}
-              className="bg-primary flex-row items-center gap-1 px-3 py-1.5 rounded-xl active:bg-primary-600"
+              className={`flex-row items-center gap-1 px-3 py-1.5 rounded-[14px] ${
+                isDark ? "bg-slate-800 border border-slate-700 active:bg-slate-700" : "bg-[#173B6C] active:bg-[#122c52]"
+              }`}
             >
-              <Plus size={12} color="#FFFFFF" />
-              <Text className="text-xs font-semibold text-white">Assign Worker</Text>
+              <Plus size={12} color={isDark ? "#B8CAD9" : "#FFFFFF"} />
+              <Text className={`text-xs font-semibold ${isDark ? "text-[#B8CAD9]" : "text-white"}`}>Assign Worker</Text>
             </TouchableOpacity>
           </View>
 
-          <View className="bg-white border border-border rounded-2xl overflow-hidden shadow-xs divide-y divide-slate-100">
+          <View className={`border rounded-2xl overflow-hidden shadow-xs divide-y ${
+            isDark ? "bg-[#1E293B] border-slate-800 divide-slate-800" : "bg-white border-border divide-slate-100"
+          }`}>
             {detail.assignments.length === 0 ? (
-              <Text className="p-5 text-sm text-muted-foreground text-center">
+              <Text className={`p-5 text-sm text-center ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                 No workers assigned to this site yet.
               </Text>
             ) : (
               detail.assignments.map((a: any) => (
-                <View key={a.worker_id} className="p-4 flex-row justify-between items-center">
+                <View key={a.worker_id} className={`p-4 flex-row justify-between items-center ${isDark ? "bg-[#1E293B]" : "bg-white"}`}>
                   <TouchableOpacity
                     onPress={() => router.push(`/workers/${a.worker_id}` as any)}
                     className="flex-1 pr-4"
                   >
-                    <Text className="text-sm font-bold text-slate-800">
+                    <Text className={`text-sm font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                       {a.workers?.full_name ?? "Worker"}
                     </Text>
-                    <Text className="text-xs text-slate-400 mt-0.5">
+                    <Text className={`text-xs mt-0.5 ${isDark ? "text-slate-450" : "text-slate-400"}`}>
                       {a.workers?.worker_type || "Worker"} · {formatCurrency(a.workers?.daily_wage)}/day
                     </Text>
                   </TouchableOpacity>
@@ -586,9 +624,11 @@ export default function ProjectDetailScreen() {
                         ]
                       );
                     }}
-                    className="px-3 py-1 rounded-lg border border-red-200 bg-red-50/50"
+                    className={`px-3 py-1 rounded-[10px] border ${
+                      isDark ? "bg-red-950/40 border-red-900/60 active:bg-red-950" : "bg-red-50 active:bg-red-100"
+                    }`}
                   >
-                    <Text className="text-xs font-bold text-red-600">Remove</Text>
+                    <Text className={`text-xs font-bold ${isDark ? "text-red-400" : "text-red-655"}`}>Remove</Text>
                   </TouchableOpacity>
                 </View>
               ))
@@ -599,30 +639,34 @@ export default function ProjectDetailScreen() {
         {/* Quotations Section */}
         <View className="gap-2">
           <View className="flex-row justify-between items-center mb-1">
-            <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
+            <Text className={`text-xs uppercase font-bold tracking-wider ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
               Quotation
             </Text>
             <View className="flex-row gap-2">
               {detail.quotations.length > 1 && (
                 <TouchableOpacity
                   onPress={() => setShowHistoryModal(true)}
-                  className="border border-slate-200 px-3 py-1.5 rounded-xl flex-row items-center gap-1 bg-white"
+                  className={`border px-3 py-1.5 rounded-[14px] flex-row items-center gap-1 ${
+                    isDark ? "bg-slate-850 border-slate-700" : "bg-white border-slate-200"
+                  }`}
                 >
-                  <History size={12} color="#64748B" />
-                  <Text className="text-xs font-semibold text-slate-600">v{detail.quotations.length}</Text>
+                  <History size={12} color={isDark ? "#B8CAD9" : "#64748B"} />
+                  <Text className={`text-xs font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>v{detail.quotations.length}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 onPress={handlePickQuotation}
                 disabled={uploadingQuotation}
-                className="bg-primary flex-row items-center gap-1 px-3 py-1.5 rounded-xl active:bg-primary-600"
+                className={`flex-row items-center gap-1 px-3 py-1.5 rounded-[14px] ${
+                  isDark ? "bg-slate-800 border border-slate-700 active:bg-slate-700" : "bg-[#173B6C] active:bg-[#122c52]"
+                }`}
               >
                 {uploadingQuotation ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={isDark ? "#B8CAD9" : "#FFFFFF"} />
                 ) : (
                   <>
-                    <Upload size={12} color="#FFFFFF" />
-                    <Text className="text-xs font-semibold text-white">
+                    <Upload size={12} color={isDark ? "#B8CAD9" : "#FFFFFF"} />
+                    <Text className={`text-xs font-semibold ${isDark ? "text-[#B8CAD9]" : "text-white"}`}>
                       {currentQuote ? "Replace" : "Upload"}
                     </Text>
                   </>
@@ -631,30 +675,34 @@ export default function ProjectDetailScreen() {
             </View>
           </View>
 
-          <View className="bg-white border border-border rounded-2xl p-4 shadow-xs">
+          <View className={`border rounded-2xl p-4 shadow-xs ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+          }`}>
             {!currentQuote ? (
-              <Text className="text-sm text-muted-foreground text-center py-2">
+              <Text className={`text-sm text-center py-2 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                 No quotation uploaded yet. Upload PDF, Excel, or Image.
               </Text>
             ) : (
               <View className="flex-row justify-between items-center gap-3">
                 <View className="flex-row items-center gap-3 flex-1 pr-2">
-                  <FileText size={28} color="#1E3A5F" />
+                  <FileText size={28} color={isDark ? "#B8CAD9" : "#1E3A5F"} />
                   <View className="flex-1">
-                    <Text className="text-sm font-bold text-slate-800 truncate">
+                    <Text className={`text-sm font-bold truncate ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                       {currentQuote.file_name}
                     </Text>
-                    <Text className="text-[10px] text-muted-foreground mt-0.5">
+                    <Text className={`text-[10px] mt-0.5 ${isDark ? "text-slate-450" : "text-muted-foreground"}`}>
                       Version {currentQuote.version} · {new Date(currentQuote.created_at).toLocaleDateString()}
                     </Text>
                   </View>
                 </View>
                 <TouchableOpacity
                   onPress={() => handleOpenQuotation(currentQuote.file_path)}
-                  className="bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-xl flex-row items-center gap-1 active:bg-slate-200"
+                  className={`border px-3.5 py-1.5 rounded-[10px] flex-row items-center gap-1 ${
+                    isDark ? "bg-slate-800 border-slate-700 active:bg-slate-700" : "bg-slate-100 border-slate-200 active:bg-slate-200"
+                  }`}
                 >
-                  <Download size={12} color="#1E3A5F" />
-                  <Text className="text-xs font-semibold text-primary">Open</Text>
+                  <Download size={12} color={isDark ? "#B8CAD9" : "#1E3A5F"} />
+                  <Text className={`text-xs font-semibold ${isDark ? "text-[#B8CAD9]" : "text-primary"}`}>Open</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -664,24 +712,29 @@ export default function ProjectDetailScreen() {
         {/* Site Updates & Log */}
         <View className="gap-2">
           <View className="flex-row justify-between items-center mb-1">
-            <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground font-semibold">
+            <Text className={`text-xs uppercase font-bold tracking-wider font-semibold ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
               Site Updates
             </Text>
             <TouchableOpacity
               onPress={() => handleOpenUpdateModal()}
-              className="bg-primary flex-row items-center gap-1 px-3 py-1.5 rounded-xl active:bg-primary-600"
+              className={`flex-row items-center gap-1 px-3 py-1.5 rounded-[14px] ${
+                isDark ? "bg-slate-800 border border-slate-700 active:bg-slate-700" : "bg-[#173B6C] active:bg-[#122c52]"
+              }`}
             >
-              <Plus size={12} color="#FFFFFF" />
-              <Text className="text-xs font-semibold text-white">Add Update</Text>
+              <Plus size={12} color={isDark ? "#B8CAD9" : "#FFFFFF"} />
+              <Text className={`text-xs font-semibold ${isDark ? "text-[#B8CAD9]" : "text-white"}`}>Add Update</Text>
             </TouchableOpacity>
           </View>
 
-          <View className="bg-white border border-border rounded-2xl p-4 shadow-xs gap-4 divide-y divide-slate-100">
+          <View className={`border rounded-2xl p-4 shadow-xs gap-4 divide-y ${
+            isDark ? "bg-[#1E293B] border-slate-800 divide-slate-800" : "bg-white border-border divide-slate-100"
+          }`}>
             {detail.updates.length === 0 ? (
-              <Text className="text-sm text-muted-foreground text-center py-4">
+              <Text className={`text-sm text-center py-4 ${isDark ? "text-slate-450" : "text-muted-foreground"}`}>
                 No site updates recorded yet.
               </Text>
             ) : (
+
               detail.updates.map((up) => <UpdateRow key={up.id} update={up} />)
             )}
           </View>
@@ -690,20 +743,29 @@ export default function ProjectDetailScreen() {
 
       {/* Edit Project Modal */}
       <Modal visible={showEditModal} animationType="slide" transparent onRequestClose={() => setShowEditModal(false)}>
-        <View className="flex-1 justify-end bg-black/50">
+        <View className="flex-1 justify-end bg-black/60">
           <View
             style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
-            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[85%]"
+            className={`rounded-t-3xl p-6 gap-4 border-t max-h-[85%] ${
+              isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
+            }`}
           >
-            <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
+            <View className={`flex-row justify-between items-center pb-2 border-b ${
+              isDark ? "border-slate-800" : "border-slate-100"
+            }`}>
               <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-lg bg-primary/10 items-center justify-center">
-                  <Pencil size={16} color="#1E3A5F" />
+                <View className={`w-8 h-8 rounded-lg items-center justify-center ${
+                  isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
+                }`}>
+                  <Pencil size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
                 </View>
-                <Text className="text-lg font-bold text-foreground">Edit Project</Text>
+                <Text className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-foreground"}`}>Edit Project</Text>
               </View>
-              <TouchableOpacity onPress={() => setShowEditModal(false)} className="p-1 rounded-full bg-slate-100">
-                <X size={18} color="#64748B" />
+              <TouchableOpacity
+                onPress={() => setShowEditModal(false)}
+                className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
+              >
+                <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
@@ -713,7 +775,7 @@ export default function ProjectDetailScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Project Name</Text>
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Project Name</Text>
                 <TextInput
                   value={projectName}
                   onChangeText={(val) => {
@@ -721,31 +783,37 @@ export default function ProjectDetailScreen() {
                     validateField("projectName", val);
                   }}
                   placeholder="Project name"
-                  placeholderTextColor="#94A3B8"
-                  className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  className={`h-11 px-3 border rounded-[14px] text-base ${
+                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                  }`}
                 />
                 {errors.projectName && <Text className="text-xs text-red-500">{errors.projectName}</Text>}
               </View>
 
               <View className="flex-row gap-3">
                 <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Client Name</Text>
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Client Name</Text>
                   <TextInput
                     value={client}
                     onChangeText={setClient}
                     placeholder="Client"
-                    placeholderTextColor="#94A3B8"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                    className={`h-11 px-3 border rounded-[14px] text-base ${
+                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                    }`}
                   />
                 </View>
                 <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Location</Text>
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Location</Text>
                   <TextInput
                     value={location}
                     onChangeText={setLocation}
                     placeholder="Location"
-                    placeholderTextColor="#94A3B8"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                    className={`h-11 px-3 border rounded-[14px] text-base ${
+                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                    }`}
                   />
                 </View>
               </View>
@@ -765,7 +833,7 @@ export default function ProjectDetailScreen() {
 
               <View className="flex-row gap-3">
                 <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Contract Value (₹)</Text>
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Contract Value (₹)</Text>
                   <TextInput
                     value={contractValue}
                     onChangeText={(val) => {
@@ -774,40 +842,56 @@ export default function ProjectDetailScreen() {
                       validateField("contractValue", cleaned);
                     }}
                     placeholder="Contract value"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                     keyboardType="number-pad"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                    className={`h-11 px-3 border rounded-[14px] text-base ${
+                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                    }`}
                   />
                   {errors.contractValue && <Text className="text-xs text-red-500">{errors.contractValue}</Text>}
                 </View>
                 <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Progress Pct (%)</Text>
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Progress Pct (%)</Text>
                   <TextInput
                     value={String(progressPct)}
                     onChangeText={(val) => setProgressPct(Math.min(100, Math.max(0, Number(val) || 0)))}
                     placeholder="e.g. 50"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                     keyboardType="numeric"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                    className={`h-11 px-3 border rounded-[14px] text-base ${
+                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                    }`}
                   />
                 </View>
               </View>
 
               {/* Status Select Grid */}
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Select Status</Text>
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Select Status</Text>
                 <View className="flex-row flex-wrap gap-2">
                   {(["planning", "active", "on_hold", "completed"] as const).map((st) => (
                     <TouchableOpacity
                       key={st}
                       onPress={() => setStatus(st)}
-                      className={`py-2 px-3 border rounded-xl flex-1 min-w-[100px] items-center ${
-                        status === st ? "bg-primary border-primary" : "bg-white border-slate-200"
+                      className={`py-2 px-3 border rounded-[14px] flex-1 min-w-[100px] items-center ${
+                        status === st
+                          ? isDark
+                            ? "bg-[#B8CAD9] border-[#B8CAD9]"
+                            : "bg-[#173B6C] border-[#173B6C]"
+                          : isDark
+                            ? "bg-slate-800 border-slate-700"
+                            : "bg-white border-slate-200"
                       }`}
                     >
                       <Text
                         className={`text-xs font-semibold capitalize ${
-                          status === st ? "text-white" : "text-slate-600"
+                          status === st
+                            ? isDark
+                              ? "text-slate-900"
+                              : "text-white"
+                            : isDark
+                              ? "text-slate-400"
+                              : "text-slate-655"
                         }`}
                       >
                         {STATUS_LABEL[st]}
@@ -818,37 +902,41 @@ export default function ProjectDetailScreen() {
               </View>
 
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Internal Notes</Text>
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Internal Notes</Text>
                 <TextInput
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Internal comments..."
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                   multiline
                   numberOfLines={3}
-                  className="px-3 py-2 border border-slate-200 rounded-xl bg-white text-base text-slate-800 min-h-[80px]"
+                  className={`px-3 py-2 border rounded-[14px] text-base min-h-[80px] ${
+                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                  }`}
                 />
               </View>
             </ScrollView>
 
-            <View className="flex-row gap-3 pt-3 border-t border-slate-100">
+            <View className={`flex-row gap-3 pt-3 border-t ${isDark ? "border-slate-800" : "border-slate-100"}`}>
               <TouchableOpacity
                 onPress={() => setShowEditModal(false)}
-                className="flex-1 h-12 rounded-xl border border-slate-200 justify-center items-center bg-white"
+                className={`flex-1 h-12 rounded-[14px] border justify-center items-center ${
+                  isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
+                }`}
               >
-                <Text className="text-base font-semibold text-slate-600">Cancel</Text>
+                <Text className={`text-base font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSaveEdit}
                 disabled={updateMutation.isPending}
-                className={`flex-1 h-12 rounded-xl bg-primary justify-center items-center active:bg-primary-600 ${
-                  updateMutation.isPending ? "opacity-50" : ""
-                }`}
+                className={`flex-1 h-12 rounded-[14px] justify-center items-center ${
+                  isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
+                } ${updateMutation.isPending ? "opacity-50" : ""}`}
               >
                 {updateMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={isDark ? "#1E293B" : "#FFFFFF"} />
                 ) : (
-                  <Text className="text-base font-semibold text-white">Saving...</Text>
+                  <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>Saving...</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -858,28 +946,37 @@ export default function ProjectDetailScreen() {
 
       {/* Assign Crew Modal */}
       <Modal visible={showAssignModal} animationType="slide" transparent onRequestClose={() => setShowAssignModal(false)}>
-        <View className="flex-1 justify-end bg-black/50">
+        <View className="flex-1 justify-end bg-black/60">
           <View
             style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
-            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[80%]"
+            className={`rounded-t-3xl p-6 gap-4 border-t max-h-[80%] ${
+              isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
+            }`}
           >
-            <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
+            <View className={`flex-row justify-between items-center pb-2 border-b ${
+              isDark ? "border-slate-800" : "border-slate-100"
+            }`}>
               <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-lg bg-primary/10 items-center justify-center">
-                  <Users size={16} color="#1E3A5F" />
+                <View className={`w-8 h-8 rounded-lg items-center justify-center ${
+                  isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
+                }`}>
+                  <Users size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
                 </View>
-                <Text className="text-lg font-bold text-foreground">Assign Worker</Text>
+                <Text className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-foreground"}`}>Assign Worker</Text>
               </View>
-              <TouchableOpacity onPress={() => setShowAssignModal(false)} className="p-1 rounded-full bg-slate-100">
-                <X size={18} color="#64748B" />
+              <TouchableOpacity
+                onPress={() => setShowAssignModal(false)}
+                className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
+              >
+                <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerClassName="gap-3 pb-6">
               {loadingWorkers ? (
-                <ActivityIndicator size="small" color="#1E3A5F" />
+                <ActivityIndicator size="small" color={isDark ? "#B8CAD9" : "#173B6C"} />
               ) : availableWorkersForAssign.length === 0 ? (
-                <Text className="text-sm text-muted-foreground text-center py-8">
+                <Text className={`text-sm text-center py-8 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                   All active workers are already assigned to this project.
                 </Text>
               ) : (
@@ -890,15 +987,17 @@ export default function ProjectDetailScreen() {
                       setShowAssignModal(false);
                       assignMutation.mutate(w.id);
                     }}
-                    className="p-3 border border-slate-150 rounded-xl bg-slate-50 flex-row justify-between items-center active:bg-slate-100"
+                    className={`p-3 border rounded-xl flex-row justify-between items-center ${
+                      isDark ? "bg-slate-800 border-slate-700 active:bg-slate-700" : "bg-slate-50 border-slate-150 active:bg-slate-100"
+                    }`}
                   >
                     <View>
-                      <Text className="text-sm font-bold text-slate-800">{w.full_name}</Text>
-                      <Text className="text-xs text-slate-400 mt-0.5">
+                      <Text className={`text-sm font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>{w.full_name}</Text>
+                      <Text className={`text-xs mt-0.5 ${isDark ? "text-slate-450" : "text-slate-400"}`}>
                         {w.worker_type || "Worker"} · {formatCurrency(w.daily_wage)}/day
                       </Text>
                     </View>
-                    <ChevronRight size={16} color="#94A3B8" />
+                    <ChevronRight size={16} color={isDark ? "#64748B" : "#94A3B8"} />
                   </TouchableOpacity>
                 ))
               )}
@@ -912,10 +1011,14 @@ export default function ProjectDetailScreen() {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setShowHistoryModal(false)}
-          className="flex-1 bg-black/40 justify-center items-center"
+          className={`flex-1 justify-center items-center ${isDark ? "bg-black/60" : "bg-black/40"}`}
         >
-          <View className="bg-white w-[90%] rounded-2xl p-5 gap-3 max-h-[75%]">
-            <Text className="text-base font-bold text-slate-800 pb-2 border-b border-slate-100">
+          <View className={`w-[90%] rounded-2xl p-5 gap-3 max-h-[75%] border ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-150"
+          }`}>
+            <Text className={`text-base font-bold pb-2 border-b ${
+              isDark ? "text-slate-200 border-slate-800" : "text-slate-800 border-slate-100"
+            }`}>
               Quotation History
             </Text>
             <ScrollView contentContainerClassName="gap-3">
@@ -923,31 +1026,35 @@ export default function ProjectDetailScreen() {
                 <View key={q.id} className="py-2.5 flex-row justify-between items-center gap-2">
                   <View className="flex-1 pr-2">
                     <View className="flex-row items-center gap-1.5 flex-wrap">
-                      <Text className="text-sm font-bold text-slate-800 truncate">
+                      <Text className={`text-sm font-bold truncate ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                         Version {q.version} · {q.file_name}
                       </Text>
                       {q.is_current && (
-                        <View className="bg-slate-100 px-2 py-0.5 rounded-full">
-                          <Text className="text-[9px] font-bold text-slate-500 uppercase">Current</Text>
+                        <View className={`px-2 py-0.5 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}>
+                          <Text className={`text-[9px] font-bold ${isDark ? "text-slate-350" : "text-slate-500"} uppercase`}>Current</Text>
                         </View>
                       )}
                     </View>
-                    <Text className="text-[10px] text-muted-foreground mt-0.5">
+                    <Text className={`text-[10px] mt-0.5 ${isDark ? "text-slate-450" : "text-muted-foreground"}`}>
                       Uploaded {new Date(q.created_at).toLocaleString()}
                     </Text>
                   </View>
                   <View className="flex-row gap-1">
                     <TouchableOpacity
                       onPress={() => handleOpenQuotation(q.file_path)}
-                      className="px-2.5 py-1.5 bg-slate-100 border border-slate-200 rounded-lg"
+                      className={`px-2.5 py-1.5 border rounded-lg ${
+                        isDark ? "bg-slate-800 border-slate-700" : "bg-slate-100 border-slate-200"
+                      }`}
                     >
-                      <Text className="text-xs font-semibold text-primary">Open</Text>
+                      <Text className={`text-xs font-semibold ${isDark ? "text-[#B8CAD9]" : "text-primary"}`}>Open</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleDeleteQuotation(q.id, q.file_name)}
-                      className="p-1.5 bg-red-50 border border-red-100 rounded-lg"
+                      className={`p-1.5 border rounded-lg ${
+                        isDark ? "bg-red-950/40 border-red-900/60" : "bg-red-50 border-red-100"
+                      }`}
                     >
-                      <Trash2 size={14} color="#EF4444" />
+                      <Trash2 size={14} color={isDark ? "#F87171" : "#EF4444"} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -959,28 +1066,37 @@ export default function ProjectDetailScreen() {
 
       {/* Add Site Update Modal */}
       <Modal visible={showUpdateModal} animationType="slide" transparent onRequestClose={() => setShowUpdateModal(false)}>
-        <View className="flex-1 justify-end bg-black/50">
+        <View className="flex-1 justify-end bg-black/60">
           <View
             style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
-            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border"
+            className={`rounded-t-3xl p-6 gap-4 border-t ${
+              isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
+            }`}
           >
             {/* Header */}
-            <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
+            <View className={`flex-row justify-between items-center pb-2 border-b ${
+              isDark ? "border-slate-800" : "border-slate-100"
+            }`}>
               <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-lg bg-primary/10 items-center justify-center">
-                  <MessageSquare size={16} color="#1E3A5F" />
+                <View className={`w-8 h-8 rounded-lg items-center justify-center ${
+                  isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
+                }`}>
+                  <MessageSquare size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
                 </View>
-                <Text className="text-lg font-bold text-slate-800">Add Site Update</Text>
+                <Text className={`text-lg font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>Add Site Update</Text>
               </View>
-              <TouchableOpacity onPress={() => setShowUpdateModal(false)} className="p-1 rounded-full bg-slate-100">
-                <X size={18} color="#64748B" />
+              <TouchableOpacity
+                onPress={() => setShowUpdateModal(false)}
+                className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
+              >
+                <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
             {/* Form */}
             <View className="gap-4">
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Update Description</Text>
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Update Description</Text>
                 <TextInput
                   value={updateNote}
                   onChangeText={(val) => {
@@ -988,28 +1104,34 @@ export default function ProjectDetailScreen() {
                     validateField("updateNote", val);
                   }}
                   placeholder="e.g. Plastering work started, Slab pouring completed..."
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                   multiline
                   numberOfLines={3}
-                  className="px-3 py-2 border border-slate-200 rounded-xl bg-white text-base text-slate-800 min-h-[80px]"
+                  className={`px-3 py-2 border rounded-[14px] text-base min-h-[80px] ${
+                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                  }`}
                 />
                 {errors.updateNote && <Text className="text-xs text-red-500">{errors.updateNote}</Text>}
               </View>
 
               {/* Site Photo Selection */}
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Site Photo (optional)</Text>
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>Site Photo (optional)</Text>
                 <View className="flex-row items-center gap-3">
                   <TouchableOpacity
                     onPress={handlePickUpdatePhoto}
-                    className="border border-slate-200 border-dashed rounded-xl px-4 py-3 flex-row items-center gap-2 bg-slate-50"
+                    className={`border border-dashed rounded-xl px-4 py-3 flex-row items-center gap-2 ${
+                      isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+                    }`}
                   >
-                    <ImageIcon size={16} color="#1E3A5F" />
-                    <Text className="text-xs font-semibold text-slate-600">Select Image</Text>
+                    <ImageIcon size={16} color={isDark ? "#B8CAD9" : "#1E3A5F"} />
+                    <Text className={`text-xs font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Select Image</Text>
                   </TouchableOpacity>
                   {selectedPhotoUri && (
-                    <View className="flex-row items-center gap-1.5 bg-slate-100 rounded-lg px-2.5 py-1.5 flex-1 pr-6 relative">
-                      <Text className="text-xs text-slate-600 truncate flex-1" numberOfLines={1}>
+                    <View className={`flex-row items-center gap-1.5 rounded-lg px-2.5 py-1.5 flex-1 pr-6 relative ${
+                      isDark ? "bg-slate-800" : "bg-slate-100"
+                    }`}>
+                      <Text className={`text-xs truncate flex-1 ${isDark ? "text-slate-300" : "text-slate-600"}`} numberOfLines={1}>
                         {selectedPhotoName}
                       </Text>
                       <TouchableOpacity
@@ -1018,9 +1140,9 @@ export default function ProjectDetailScreen() {
                           setSelectedPhotoName(null);
                           setSelectedPhotoType(null);
                         }}
-                        className="absolute right-1 p-0.5 rounded-full bg-slate-200"
+                        className={`absolute right-1 p-0.5 rounded-full ${isDark ? "bg-slate-700" : "bg-slate-200"}`}
                       >
-                        <X size={10} color="#64748B" />
+                        <X size={10} color={isDark ? "#94A3B8" : "#64748B"} />
                       </TouchableOpacity>
                     </View>
                   )}
@@ -1034,34 +1156,42 @@ export default function ProjectDetailScreen() {
               >
                 <View
                   className={`w-5 h-5 rounded border items-center justify-center ${
-                    isMilestone ? "bg-primary border-primary" : "border-slate-300"
+                    isMilestone
+                      ? isDark
+                        ? "bg-[#B8CAD9] border-[#B8CAD9]"
+                        : "bg-primary border-primary"
+                      : isDark
+                        ? "border-slate-700"
+                        : "border-slate-300"
                   }`}
                 >
-                  {isMilestone && <Text className="text-white text-[10px] font-bold">✓</Text>}
+                  {isMilestone && <Text className={`${isDark ? "text-slate-900" : "text-white"} text-[10px] font-bold`}>✓</Text>}
                 </View>
-                <Text className="text-sm text-slate-700 font-semibold">Mark as Milestone</Text>
+                <Text className={`text-sm font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`}>Mark as Milestone</Text>
               </TouchableOpacity>
             </View>
 
             {/* Footer */}
-            <View className="flex-row gap-3 pt-3 border-t border-slate-100">
+            <View className={`flex-row gap-3 pt-3 border-t ${isDark ? "border-slate-800" : "border-slate-100"}`}>
               <TouchableOpacity
                 onPress={() => setShowUpdateModal(false)}
-                className="flex-1 h-12 rounded-xl border border-slate-200 justify-center items-center bg-white"
+                className={`flex-1 h-12 rounded-[14px] border justify-center items-center ${
+                  isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
+                }`}
               >
-                <Text className="text-base font-semibold text-slate-600">Cancel</Text>
+                <Text className={`text-base font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSaveUpdate}
                 disabled={uploadingUpdatePhoto || addUpdateMutation.isPending}
-                className={`flex-1 h-12 rounded-xl bg-primary justify-center items-center active:bg-primary-600 ${
-                  (uploadingUpdatePhoto || addUpdateMutation.isPending) ? "opacity-50" : ""
-                }`}
+                className={`flex-1 h-12 rounded-[14px] justify-center items-center ${
+                  isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
+                } ${(uploadingUpdatePhoto || addUpdateMutation.isPending) ? "opacity-50" : ""}`}
               >
                 {uploadingUpdatePhoto || addUpdateMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={isDark ? "#1E293B" : "#FFFFFF"} />
                 ) : (
-                  <Text className="text-base font-semibold text-white">Saving...</Text>
+                  <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>Saving...</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1075,6 +1205,7 @@ export default function ProjectDetailScreen() {
 
 /* ── Single Update Row Component ── */
 function UpdateRow({ update }: { update: any }) {
+  const isDark = useIsDark();
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [loadingPhoto, setLoadingPhoto] = useState(false);
 
@@ -1095,33 +1226,39 @@ function UpdateRow({ update }: { update: any }) {
   }, [update.photo_path]);
 
   return (
-    <View className="py-4 flex-row gap-3 bg-white">
+    <View className={`py-4 flex-row gap-3 ${isDark ? "bg-[#1E293B]" : "bg-white"}`}>
       <View className="mt-1 shrink-0">
         {update.is_milestone ? (
-          <View className="w-7 h-7 rounded-full bg-primary/10 items-center justify-center">
-            <Milestone size={14} color="#1E3A5F" />
+          <View className={`w-7 h-7 rounded-full items-center justify-center ${
+            isDark ? "bg-slate-800" : "bg-primary/10"
+          }`}>
+            <Milestone size={14} color={isDark ? "#B8CAD9" : "#1E3A5F"} />
           </View>
         ) : (
-          <View className="w-7 h-7 rounded-full bg-slate-100 items-center justify-center">
-            <MessageSquare size={14} color="#64748B" />
+          <View className={`w-7 h-7 rounded-full items-center justify-center ${
+            isDark ? "bg-slate-800" : "bg-slate-100"
+          }`}>
+            <MessageSquare size={14} color={isDark ? "#94A3B8" : "#64748B"} />
           </View>
         )}
       </View>
       <View className="flex-1 min-w-0">
-        <Text className="text-sm font-semibold text-slate-800 leading-normal">
+        <Text className={`text-sm font-semibold leading-normal ${isDark ? "text-slate-200" : "text-slate-800"}`}>
           {update.note}
         </Text>
-        <Text className="text-[10px] text-muted-foreground mt-1">
+        <Text className={`text-[10px] mt-1 ${isDark ? "text-slate-450" : "text-muted-foreground"}`}>
           {new Date(update.created_at).toLocaleString()}
         </Text>
         {update.photo_path && (
-          <View className="mt-3.5 border border-slate-100 rounded-xl overflow-hidden bg-slate-50 min-h-[100px] justify-center items-center">
+          <View className={`mt-3.5 border rounded-xl overflow-hidden min-h-[100px] justify-center items-center ${
+            isDark ? "border-slate-800 bg-slate-800/40" : "border-slate-100 bg-slate-50"
+          }`}>
             {loadingPhoto ? (
-              <ActivityIndicator size="small" color="#1E3A5F" />
+              <ActivityIndicator size="small" color={isDark ? "#B8CAD9" : "#1E3A5F"} />
             ) : photoUrl ? (
               <Image source={{ uri: photoUrl }} className="w-full h-44" resizeMode="cover" />
             ) : (
-              <Text className="text-xs text-slate-400">Unable to load photo</Text>
+              <Text className={`text-xs ${isDark ? "text-slate-500" : "text-slate-400"}`}>Unable to load photo</Text>
             )}
           </View>
         )}
@@ -1129,3 +1266,4 @@ function UpdateRow({ update }: { update: any }) {
     </View>
   );
 }
+

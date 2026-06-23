@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Slot, useRouter, useSegments } from "expo-router";
+import { Slot, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -20,13 +20,27 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ErrorBoundary>
           <QueryClientProvider client={queryClient}>
-            <AuthGate />
+            <NavigationStateGate>
+              <AuthGate />
+            </NavigationStateGate>
             <StatusBar style="auto" />
           </QueryClientProvider>
         </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+/**
+ * Gate that delays rendering until the root navigation state is ready.
+ * This prevents hook failures and race conditions before context is initialized.
+ */
+function NavigationStateGate({ children }: { children: React.ReactNode }) {
+  const navigationState = useRootNavigationState();
+  if (!navigationState?.key) {
+    return null;
+  }
+  return <>{children}</>;
 }
 
 /**
@@ -57,3 +71,4 @@ function AuthGate() {
 
   return <Slot />;
 }
+

@@ -35,7 +35,8 @@ import { assignWorker } from "@/lib/projects.functions";
 import { ATTENDANCE_LABEL, type AttendanceType } from "@/lib/wages";
 import { toLocalISODate } from "@/lib/format";
 import { handleApiError } from "@/lib/errors";
-
+import { useIsDark } from "@/hooks/use-is-dark";
+import { PressableScale } from "@/components/PressableScale";
 
 const TYPES: AttendanceType[] = ["full", "half", "overtime", "absent"];
 
@@ -60,6 +61,7 @@ export default function AttendanceScreen() {
 }
 
 function ProjectPicker({ onPick }: { onPick: (id: string) => void }) {
+  const isDark = useIsDark();
   const { data: projects = [], isLoading, refetch } = useQuery({
     queryKey: ["projects", "stats"],
     queryFn: () => listProjectsWithStats() as Promise<ProjectStats[]>,
@@ -71,21 +73,29 @@ function ProjectPicker({ onPick }: { onPick: (id: string) => void }) {
   }, [projects]);
 
   return (
-    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["top", "left", "right"]} className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
       <ScrollView
         contentContainerClassName="px-4 py-6 pb-32 gap-4"
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refetch} colors={["#1E3A5F"]} />
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refetch}
+            colors={[isDark ? "#B8CAD9" : "#173B6C"]}
+          />
         }
       >
         {/* Header Info */}
-        <View className="bg-white border border-border p-5 rounded-2xl flex-row items-center gap-3.5 shadow-xs">
-          <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center">
-            <HardHat size={20} color="#1E3A5F" />
+        <View className={`border p-5 rounded-2xl flex-row items-center gap-3.5 shadow-xs ${
+          isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+        }`}>
+          <View className={`w-10 h-10 rounded-xl items-center justify-center ${
+            isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
+          }`}>
+            <HardHat size={20} color={isDark ? "#B8CAD9" : "#173B6C"} />
           </View>
           <View className="flex-1">
-            <Text className="text-base font-bold text-slate-800">Select Project</Text>
-            <Text className="text-xs text-muted-foreground mt-0.5">
+            <Text className={`text-base font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>Select Project</Text>
+            <Text className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
               Mark attendance for workers assigned to this site.
             </Text>
           </View>
@@ -93,33 +103,41 @@ function ProjectPicker({ onPick }: { onPick: (id: string) => void }) {
 
         {/* Project Lists */}
         {isLoading ? (
-          <ActivityIndicator size="large" color="#1E3A5F" className="py-12" />
+          <ActivityIndicator size="large" color={isDark ? "#B8CAD9" : "#173B6C"} className="py-12" />
         ) : activeProjects.length === 0 ? (
-          <View className="bg-white border border-border rounded-2xl p-6 items-center">
-            <Text className="text-sm text-muted-foreground text-center">
+          <View className={`border rounded-2xl p-6 items-center ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+          }`}>
+            <Text className={`text-sm text-center ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
               No active or planning projects found. Add a project first to manage attendance.
             </Text>
           </View>
         ) : (
-          <View className="bg-white border border-border rounded-2xl overflow-hidden shadow-xs divide-y divide-slate-100">
+          <View className={`border rounded-2xl overflow-hidden shadow-xs divide-y ${
+            isDark ? "bg-[#1E293B] border-slate-800 divide-slate-800" : "bg-white border-border divide-slate-100"
+          }`}>
             {activeProjects.map((p) => (
               <TouchableOpacity
                 key={p.id}
                 onPress={() => onPick(p.id)}
-                className="w-full p-4 flex-row justify-between items-center bg-white active:bg-slate-50"
+                className={`w-full p-4 flex-row justify-between items-center ${
+                  isDark ? "bg-[#1E293B] active:bg-slate-800" : "bg-white active:bg-slate-50"
+                }`}
               >
                 <View className="flex-1 pr-3">
-                  <Text className="font-bold text-slate-850 text-base truncate">
+                  <Text className={`font-bold text-base truncate ${isDark ? "text-slate-200" : "text-slate-850"}`}>
                     {p.name}
                   </Text>
-                  <Text className="text-xs text-muted-foreground truncate mt-0.5">
+                  <Text className={`text-xs truncate mt-0.5 ${isDark ? "text-slate-450" : "text-muted-foreground"}`}>
                     {p.location || "No Location Specified"}
                   </Text>
-                  <Text className="text-[10px] font-bold text-primary uppercase tracking-wider mt-2 bg-primary/5 px-2 py-0.5 rounded-full self-start">
+                  <Text className={`text-[10px] font-bold uppercase tracking-wider mt-2 px-2 py-0.5 rounded-full self-start ${
+                    isDark ? "bg-[#B8CAD9]/10 text-[#B8CAD9]" : "bg-[#173B6C]/5 text-primary"
+                  }`}>
                     {p.assignedCount} workers
                   </Text>
                 </View>
-                <ChevronRight size={18} color="#94A3B8" />
+                <ChevronRight size={18} color={isDark ? "#64748B" : "#94A3B8"} />
               </TouchableOpacity>
             ))}
           </View>
@@ -137,6 +155,7 @@ function ProjectAttendance({
   onBack: () => void;
 }) {
   const qc = useQueryClient();
+  const isDark = useIsDark();
   const [date, setDate] = useState(() => toLocalISODate(new Date()));
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -282,17 +301,21 @@ function ProjectAttendance({
     const yest = yesterdayByWorker.get(w.id);
 
     return (
-      <View className="bg-white border border-border rounded-2xl p-4 shadow-xs mb-3">
+      <View className={`border rounded-2xl p-4 shadow-xs mb-3 ${
+        isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+      }`}>
         <View className="flex-row justify-between items-start mb-3">
           <View className="flex-1 pr-2">
-            <Text className="font-bold text-slate-800 text-sm">{w.full_name}</Text>
-            <Text className="text-xs text-muted-foreground mt-0.5">
+            <Text className={`font-bold text-sm ${isDark ? "text-slate-200" : "text-slate-800"}`}>{w.full_name}</Text>
+            <Text className={`text-xs mt-0.5 ${isDark ? "text-slate-450" : "text-muted-foreground"}`}>
               {w.worker_type || "Worker"}
             </Text>
           </View>
           {yest && (
-            <View className="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg">
-              <Text className="text-[9px] text-muted-foreground font-semibold">
+            <View className={`border px-2 py-0.5 rounded-lg ${
+              isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+            }`}>
+              <Text className={`text-[9px] font-semibold ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                 Yest: {ATTENDANCE_LABEL[yest]}
               </Text>
             </View>
@@ -303,18 +326,18 @@ function ProjectAttendance({
         <View className="flex-row gap-1.5">
           {TYPES.map((t) => {
             const active = current === t;
-            let btnBg = "bg-white border-slate-200";
-            let txtColor = "text-slate-600";
+            let btnBg = isDark ? "bg-[#1E293B] border-slate-700" : "bg-white border-slate-200";
+            let txtColor = isDark ? "text-slate-400" : "text-slate-600";
             if (active) {
-              btnBg = "bg-primary border-primary";
-              txtColor = "text-white";
+              btnBg = isDark ? "bg-[#B8CAD9] border-[#B8CAD9]" : "bg-[#173B6C] border-[#173B6C]";
+              txtColor = isDark ? "text-slate-900" : "text-white";
             }
 
             return (
               <TouchableOpacity
                 key={t}
                 onPress={() => markMutation.mutate({ worker_id: w.id, type: t, isClear: active })}
-                className={`flex-1 items-center justify-center py-2.5 rounded-xl border ${btnBg}`}
+                className={`flex-1 items-center justify-center py-2.5 rounded-[14px] border ${btnBg}`}
               >
                 <Text className={`text-xs font-bold ${txtColor}`}>
                   {ATTENDANCE_LABEL[t]}
@@ -325,23 +348,28 @@ function ProjectAttendance({
         </View>
       </View>
     );
-  }, [byWorker, yesterdayByWorker, markMutation]);
+  }, [byWorker, yesterdayByWorker, markMutation, isDark]);
 
   const isLoading = loadingWorkers || loadingAttendance;
 
   return (
-    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["top", "left", "right"]} className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
       {/* Sub Header */}
-      <View className="px-4 py-3 bg-white border-b border-slate-100 flex-row items-center gap-3">
-        <TouchableOpacity onPress={onBack} className="p-1 rounded-full bg-slate-100">
-          <ArrowLeft size={18} color="#64748B" />
+      <View className={`px-4 py-3 border-b flex-row items-center gap-3 ${
+        isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-slate-100"
+      }`}>
+        <TouchableOpacity
+          onPress={onBack}
+          className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
+        >
+          <ArrowLeft size={18} color={isDark ? "#B8CAD9" : "#64748B"} />
         </TouchableOpacity>
-        <Text className="text-sm font-semibold text-slate-600">Change Project</Text>
+        <Text className={`text-sm font-semibold ${isDark ? "text-slate-350" : "text-slate-600"}`}>Change Project</Text>
       </View>
 
       {isLoading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#1E3A5F" />
+          <ActivityIndicator size="large" color={isDark ? "#B8CAD9" : "#173B6C"} />
         </View>
       ) : (
         <FlatList
@@ -352,44 +380,60 @@ function ProjectAttendance({
           ListHeaderComponent={
             <View className="gap-4 mb-4">
               {/* Info Card with Date Navigation */}
-              <View className="bg-white border border-border rounded-2xl p-5 shadow-xs gap-4">
+              <View className={`border rounded-2xl p-5 shadow-xs gap-4 ${
+                isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+              }`}>
                 <View className="flex-row items-center gap-3">
-                  <HardHat size={20} color="#1E3A5F" />
+                  <HardHat size={20} color={isDark ? "#B8CAD9" : "#173B6C"} />
                   <View className="flex-1">
-                    <Text className="text-base font-bold text-slate-800">{project?.name ?? "Project"}</Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">{project?.location || "—"}</Text>
+                    <Text className={`text-base font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
+                      {project?.name ?? "Project"}
+                    </Text>
+                    <Text className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
+                      {project?.location || "—"}
+                    </Text>
                   </View>
                 </View>
 
                 {/* Date Picker row */}
-                <View className="flex-row items-center gap-2 border-t border-slate-100 pt-4">
+                <View className={`flex-row items-center gap-2 border-t pt-4 ${
+                  isDark ? "border-slate-850" : "border-slate-100"
+                }`}>
                   <TouchableOpacity
                     onPress={() => incrementDate(-1)}
-                    className="w-10 h-10 rounded-xl border border-slate-200 justify-center items-center bg-slate-50"
+                    className={`w-10 h-10 rounded-[14px] border justify-center items-center ${
+                      isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+                    }`}
                   >
-                    <ChevronLeft size={16} color="#64748B" />
+                    <ChevronLeft size={16} color={isDark ? "#B8CAD9" : "#64748B"} />
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={() => setShowDatePicker(true)}
-                    className="flex-1 flex-row items-center bg-slate-50 border border-slate-200 px-3 h-10 rounded-xl"
+                    className={`flex-1 flex-row items-center px-3 h-10 rounded-[14px] border ${
+                      isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+                    }`}
                   >
-                    <Calendar size={14} color="#94A3B8" />
-                    <Text className="flex-1 ml-2 text-sm text-slate-800 font-semibold">
+                    <Calendar size={14} color={isDark ? "#B8CAD9" : "#94A3B8"} />
+                    <Text className={`flex-1 ml-2 text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                       {date}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={() => incrementDate(1)}
-                    className="w-10 h-10 rounded-xl border border-slate-200 justify-center items-center bg-slate-50"
+                    className={`w-10 h-10 rounded-[14px] border justify-center items-center ${
+                      isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+                    }`}
                   >
-                    <ChevronRight size={16} color="#64748B" />
+                    <ChevronRight size={16} color={isDark ? "#B8CAD9" : "#64748B"} />
                   </TouchableOpacity>
 
                   {/* Attendance Status Badge */}
-                  <View className="bg-primary/5 border border-primary/20 rounded-xl h-10 px-3 justify-center items-center">
-                    <Text className="text-xs font-bold text-primary font-mono">
+                  <View className={`border rounded-[14px] h-10 px-3 justify-center items-center ${
+                    isDark ? "bg-[#B8CAD9]/10 border-[#B8CAD9]/20" : "bg-[#173B6C]/5 border-[#173B6C]/20"
+                  }`}>
+                    <Text className={`text-xs font-bold font-mono ${isDark ? "text-[#B8CAD9]" : "text-primary"}`}>
                       {presentTodayCount}/{workers.length}
                     </Text>
                   </View>
@@ -401,10 +445,12 @@ function ProjectAttendance({
                 <TouchableOpacity
                   onPress={() => bulkMutation.mutate()}
                   disabled={bulkMutation.isPending}
-                  className="bg-primary flex-row items-center justify-center gap-2 py-3 rounded-xl border border-primary/10 shadow-xs active:bg-primary-600"
+                  className={`flex-row items-center justify-center gap-2 py-3 rounded-[14px] border shadow-xs ${
+                    isDark ? "bg-slate-800 border-slate-700" : "bg-[#173B6C] border-primary/10 active:bg-primary-600"
+                  }`}
                 >
-                  <Sparkles size={14} color="#FFFFFF" />
-                  <Text className="text-xs font-bold text-white">
+                  <Sparkles size={14} color={isDark ? "#B8CAD9" : "#FFFFFF"} />
+                  <Text className={`text-xs font-bold ${isDark ? "text-[#B8CAD9]" : "text-white"}`}>
                     {bulkMutation.isPending ? "Saving..." : "Mark All as Full Day"}
                   </Text>
                 </TouchableOpacity>
@@ -412,8 +458,10 @@ function ProjectAttendance({
             </View>
           }
           ListEmptyComponent={
-            <View className="bg-white border border-border rounded-2xl p-6 items-center">
-              <Text className="text-sm text-muted-foreground text-center">
+            <View className={`border rounded-2xl p-6 items-center ${
+              isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+            }`}>
+              <Text className={`text-sm text-center ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                 No workers are currently assigned to this project. Go to the project profile to assign workers.
               </Text>
             </View>
@@ -421,10 +469,12 @@ function ProjectAttendance({
           renderItem={renderWorkerAttendanceItem}
           ListFooterComponent={
             unassignedWorkers.length > 0 ? (
-              <View className="gap-2.5 mt-4 border-t border-slate-100 pt-5">
+              <View className={`gap-2.5 mt-4 border-t pt-5 ${
+                isDark ? "border-slate-800" : "border-slate-100"
+              }`}>
                 <View className="flex-row items-center gap-2 mb-1">
-                  <UserPlus size={14} color="#64748B" />
-                  <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
+                  <UserPlus size={14} color={isDark ? "#B8CAD9" : "#64748B"} />
+                  <Text className={`text-xs uppercase font-bold tracking-wider ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                     Unassigned Workers ({unassignedWorkers.length})
                   </Text>
                 </View>
@@ -433,10 +483,12 @@ function ProjectAttendance({
                   {unassignedWorkers.map((w: any) => (
                     <View
                       key={w.id}
-                      className="bg-white border border-dashed border-slate-200 p-4 rounded-2xl flex-row justify-between items-center shadow-xs"
+                      className={`border p-4 rounded-2xl flex-row justify-between items-center shadow-xs ${
+                        isDark ? "bg-[#1E293B] border-slate-800 border-dashed" : "bg-white border-dashed border-slate-200"
+                      }`}
                     >
                       <View className="flex-1 pr-3">
-                        <Text className="font-bold text-slate-800 text-sm">{w.full_name}</Text>
+                        <Text className={`font-bold text-sm ${isDark ? "text-slate-200" : "text-slate-800"}`}>{w.full_name}</Text>
                         <Text className="text-[10px] text-red-500 font-bold mt-0.5">
                           This worker is currently not assigned to any site.
                         </Text>
@@ -444,10 +496,12 @@ function ProjectAttendance({
                       <TouchableOpacity
                         onPress={() => assignMutation.mutate(w.id)}
                         disabled={assignMutation.isPending}
-                        className="border border-slate-200 px-3.5 py-1.5 rounded-xl active:bg-slate-50 flex-row items-center gap-1 bg-white"
+                        className={`border px-3.5 py-1.5 rounded-[14px] flex-row items-center gap-1 bg-white ${
+                          isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
+                        }`}
                       >
-                        <UserPlus size={11} color="#1E3A5F" />
-                        <Text className="text-xs font-bold text-primary">Assign</Text>
+                        <UserPlus size={11} color={isDark ? "#B8CAD9" : "#173B6C"} />
+                        <Text className={`text-xs font-bold ${isDark ? "text-[#B8CAD9]" : "text-primary"}`}>Assign</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -480,12 +534,19 @@ function ProjectAttendance({
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => setShowDatePicker(false)}
-            className="flex-1 bg-black/40 justify-end"
+            className={`flex-1 justify-end ${isDark ? "bg-black/60" : "bg-black/40"}`}
           >
-            <View className="bg-white p-4 pb-8 rounded-t-3xl border-t border-border">
-              <View className="flex-row justify-between items-center mb-4 pb-2 border-b border-slate-100">
-                <Text className="text-base font-bold text-slate-800">Select Date</Text>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)} className="px-4 py-1.5 bg-primary rounded-xl">
+            <View className={`p-4 pb-8 rounded-t-3xl border-t ${
+              isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+            }`}>
+              <View className={`flex-row justify-between items-center mb-4 pb-2 border-b ${
+                isDark ? "border-slate-850" : "border-slate-100"
+              }`}>
+                <Text className={`text-base font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>Select Date</Text>
+                <TouchableOpacity
+                  onPress={() => setShowDatePicker(false)}
+                  className={`px-4 py-1.5 rounded-[14px] ${isDark ? "bg-slate-700" : "bg-[#173B6C]"}`}
+                >
                   <Text className="text-sm font-semibold text-white">Done</Text>
                 </TouchableOpacity>
               </View>
@@ -493,7 +554,7 @@ function ProjectAttendance({
                 value={date ? new Date(date + "T00:00:00") : new Date()}
                 mode="date"
                 display="spinner"
-                textColor="#000000"
+                textColor={isDark ? "#FFFFFF" : "#000000"}
                 onChange={(event, selectedDate) => {
                   if (selectedDate) {
                     setDate(

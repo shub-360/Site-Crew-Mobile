@@ -12,6 +12,9 @@ import {
 } from "react-native";
 import { HardHat } from "lucide-react-native";
 import { supabase } from "@/integrations/supabase/client";
+import { validateEmail } from "@/lib/validation";
+import { useIsDark } from "@/hooks/use-is-dark";
+import { PressableScale } from "@/components/PressableScale";
 
 /**
  * Login / Signup screen.
@@ -21,31 +24,78 @@ import { supabase } from "@/integrations/supabase/client";
  * - Supabase auth via the shared client
  */
 export default function LoginScreen() {
+  const isDark = useIsDark();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
+  function handleModeChange(newMode: "signin" | "signup") {
+    setMode(newMode);
+    setFullName("");
+  }
+
   async function handleSubmit() {
-    if (!email.trim() || !password.trim()) {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       Alert.alert("Error", "Please enter your email and password.");
       return;
+    }
+
+    if (!validateEmail(cleanEmail)) {
+      Alert.alert(
+        "Invalid Email",
+        "Please enter a valid email address with a domain and TLD (e.g. shubham@company.com)."
+      );
+      return;
+    }
+
+    if (mode === "signup") {
+      if (!fullName.trim()) {
+        Alert.alert("Error", "Please enter your full name.");
+        return;
+      }
     }
 
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const cleanName = fullName.trim();
+        const { data: { user }, error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password: cleanPassword,
+          options: {
+            data: {
+              full_name: cleanName,
+              display_name: cleanName,
+            }
+          }
+        });
         if (error) throw error;
-        Alert.alert("Success", "Account created. You are now signed in.");
+        if (!user) throw new Error("Account creation failed. Please try again.");
+
+        // Automatically create user profile
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: user.id,
+          full_name: cleanName,
+          email: cleanEmail,
+        });
+
+        if (profileError) {
+          console.error("Profile creation error during signup:", profileError);
+        }
+
+        Alert.alert("Success", "Account created successfully!");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: cleanEmail,
+          password: cleanPassword,
         });
         if (error) throw error;
       }
-      // Auth state change listener in _layout.tsx handles navigation
     } catch (err: any) {
       Alert.alert("Authentication Failed", err?.message ?? "Please try again.");
     } finally {
@@ -56,7 +106,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-white"
+      className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
@@ -65,48 +115,89 @@ export default function LoginScreen() {
       >
         {/* Branding */}
         <View className="items-center mb-10">
-          <View className="w-14 h-14 rounded-2xl bg-primary items-center justify-center mb-4 shadow-sm">
-            <HardHat size={28} color="#FFFFFF" />
+          <View className={`w-14 h-14 rounded-2xl items-center justify-center mb-4 border ${
+            isDark ? "bg-slate-800 border-slate-700" : "bg-[#173B6C] border-[#173B6C]"
+          }`}>
+            <HardHat size={28} color={isDark ? "#B8CAD9" : "#FFFFFF"} />
           </View>
-          <Text className="text-2xl font-bold tracking-tight text-foreground">
+          <Text className={`text-2xl font-bold tracking-tight ${isDark ? "text-slate-100" : "text-[#173B6C]"}`}>
             SiteCrew
           </Text>
-          <Text className="text-sm text-muted-foreground mt-1">
+          <Text className={`text-sm mt-1 text-center px-4 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
             Workforce & project management for contractors
           </Text>
         </View>
 
         {/* Card */}
-        <View className="bg-white rounded-2xl border border-border p-6 shadow-sm">
+        <View
+          style={
+            isDark
+              ? null
+              : {
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  elevation: 1,
+                }
+          }
+          className={`border p-6 rounded-[16px] ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-200"
+          }`}
+        >
           {/* Tab Switcher */}
-          <View className="flex-row bg-muted rounded-xl p-1 mb-6">
+          <View className={`flex-row rounded-[12px] p-1 mb-6 ${
+            isDark ? "bg-slate-800" : "bg-slate-100"
+          }`}>
             <TouchableOpacity
-              onPress={() => setMode("signin")}
+              onPress={() => handleModeChange("signin")}
+              style={
+                mode === "signin" && !isDark
+                  ? {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.08,
+                      shadowRadius: 3,
+                      elevation: 2,
+                    }
+                  : null
+              }
               className={`flex-1 py-2.5 rounded-lg items-center ${
-                mode === "signin" ? "bg-white shadow-sm" : ""
+                mode === "signin" ? (isDark ? "bg-slate-700" : "bg-white") : ""
               }`}
             >
               <Text
-                className={`text-sm font-medium ${
+                className={`text-sm font-semibold ${
                   mode === "signin"
-                    ? "text-foreground"
-                    : "text-muted-foreground"
+                    ? isDark ? "text-slate-100" : "text-slate-800"
+                    : "text-slate-500"
                 }`}
               >
                 Sign in
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setMode("signup")}
+              onPress={() => handleModeChange("signup")}
+              style={
+                mode === "signup" && !isDark
+                  ? {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.08,
+                      shadowRadius: 3,
+                      elevation: 2,
+                    }
+                  : null
+              }
               className={`flex-1 py-2.5 rounded-lg items-center ${
-                mode === "signup" ? "bg-white shadow-sm" : ""
+                mode === "signup" ? (isDark ? "bg-slate-700" : "bg-white") : ""
               }`}
             >
               <Text
-                className={`text-sm font-medium ${
+                className={`text-sm font-semibold ${
                   mode === "signup"
-                    ? "text-foreground"
-                    : "text-muted-foreground"
+                    ? isDark ? "text-slate-100" : "text-slate-800"
+                    : "text-slate-500"
                 }`}
               >
                 Create account
@@ -116,57 +207,81 @@ export default function LoginScreen() {
 
           {/* Form */}
           <View className="gap-4">
+            {mode === "signup" && (
+              <View className="gap-1.5">
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                  Full Name
+                </Text>
+                <TextInput
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="e.g. Shubham Sharma"
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  autoComplete="name"
+                  className={`h-12 px-4 border rounded-[14px] text-base ${
+                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-850"
+                  }`}
+                />
+              </View>
+            )}
+
             <View className="gap-1.5">
-              <Text className="text-sm font-medium text-foreground">Email</Text>
+              <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                Email
+              </Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
                 placeholder="you@company.com"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
-                className="h-12 px-4 rounded-xl border border-input bg-white text-foreground text-base"
+                className={`h-12 px-4 border rounded-[14px] text-base ${
+                  isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-850"
+                }`}
               />
             </View>
 
             <View className="gap-1.5">
-              <Text className="text-sm font-medium text-foreground">
+              <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
                 Password
               </Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 secureTextEntry
                 autoComplete={
                   mode === "signup" ? "new-password" : "current-password"
                 }
-                className="h-12 px-4 rounded-xl border border-input bg-white text-foreground text-base"
+                className={`h-12 px-4 border rounded-[14px] text-base ${
+                  isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-850"
+                }`}
               />
             </View>
 
-            <TouchableOpacity
+            <PressableScale
               onPress={handleSubmit}
               disabled={busy}
-              className={`h-12 rounded-xl items-center justify-center mt-2 ${
-                busy ? "bg-primary/70" : "bg-primary"
+              style={busy ? { opacity: 0.5 } : null}
+              className={`h-12 rounded-[14px] items-center justify-center mt-2 ${
+                isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
               }`}
-              activeOpacity={0.8}
             >
               {busy ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={isDark ? "#0F172A" : "#FFFFFF"} />
               ) : (
-                <Text className="text-base font-semibold text-primary-foreground">
+                <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>
                   {mode === "signin" ? "Sign in" : "Create account"}
                 </Text>
               )}
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         </View>
 
-        <Text className="text-xs text-muted-foreground text-center mt-8">
+        <Text className={`text-xs text-center mt-8 ${isDark ? "text-slate-500" : "text-slate-400"}`}>
           By continuing you agree to manage your workforce data securely.
         </Text>
       </ScrollView>

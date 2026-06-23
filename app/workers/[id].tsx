@@ -34,7 +34,8 @@ import { formatCurrency, toLocalISODate } from "@/lib/format";
 import { handleApiError } from "@/lib/errors";
 import { DatePickerField } from "@/components/DatePickerField";
 import { Toast } from "@/components/Toast";
-
+import { useIsDark } from "@/hooks/use-is-dark";
+import { PressableScale } from "@/components/PressableScale";
 
 type WorkerStatus = "active" | "inactive";
 
@@ -48,6 +49,7 @@ export default function WorkerDetailScreen() {
   const router = useRouter();
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
+  const isDark = useIsDark();
   const now = new Date();
 
   const [year, setYear] = useState(now.getFullYear());
@@ -186,23 +188,23 @@ export default function WorkerDetailScreen() {
 
   if (isLoading && !stats) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center">
-        <ActivityIndicator size="large" color="#1E3A5F" />
+      <SafeAreaView className={`flex-1 justify-center items-center ${isDark ? "bg-[#0F172A]" : "bg-slate-50"}`}>
+        <ActivityIndicator size="large" color={isDark ? "#B8CAD9" : "#173B6C"} />
       </SafeAreaView>
     );
   }
 
   if (!stats) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center px-6">
-        <Text className="text-base text-muted-foreground text-center">
+      <SafeAreaView className={`flex-1 justify-center items-center px-6 ${isDark ? "bg-[#0F172A]" : "bg-slate-50"}`}>
+        <Text className={`text-base text-center ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
           Worker details not found or loading failed.
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
-          className="mt-4 bg-primary px-6 py-2.5 rounded-xl"
+          className={`mt-4 px-6 py-2.5 rounded-[14px] ${isDark ? "bg-slate-800" : "bg-[#173B6C]"}`}
         >
-          <Text className="text-white font-semibold">Go Back</Text>
+          <Text className={`font-semibold ${isDark ? "text-[#B8CAD9]" : "text-white"}`}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -289,18 +291,31 @@ export default function WorkerDetailScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["top", "left", "right"]} className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
       {/* Header Bar */}
-      <View className="px-4 py-3 bg-white border-b border-slate-100 flex-row items-center justify-between">
-        <TouchableOpacity onPress={() => router.back()} className="p-1 rounded-full bg-slate-100">
-          <ArrowLeft size={20} color="#64748B" />
+      <View className={`px-4 py-3 border-b flex-row items-center justify-between ${
+        isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-slate-100"
+      }`}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
+        >
+          <ArrowLeft size={20} color={isDark ? "#B8CAD9" : "#64748B"} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold text-slate-800">Worker Profile</Text>
+        <Text className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-slate-800"}`}>
+          Worker Profile
+        </Text>
         <View className="flex-row gap-2">
-          <TouchableOpacity onPress={handleOpenEdit} className="p-2 rounded-full bg-slate-100 active:bg-slate-200">
-            <Pencil size={16} color="#64748B" />
+          <TouchableOpacity
+            onPress={handleOpenEdit}
+            className={`p-2 rounded-full ${isDark ? "bg-slate-800 active:bg-slate-700" : "bg-slate-100 active:bg-slate-200"}`}
+          >
+            <Pencil size={16} color={isDark ? "#B8CAD9" : "#64748B"} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDelete} className="p-2 rounded-full bg-red-50 active:bg-red-100">
+          <TouchableOpacity
+            onPress={handleDelete}
+            className={`p-2 rounded-full ${isDark ? "bg-red-950/40 active:bg-red-900/40" : "bg-red-50 active:bg-red-100"}`}
+          >
             <Trash2 size={16} color="#EF4444" />
           </TouchableOpacity>
         </View>
@@ -308,55 +323,75 @@ export default function WorkerDetailScreen() {
 
       <ScrollView contentContainerClassName="px-4 py-5 gap-5 pb-12">
         {/* Profile Card */}
-        <View className="bg-white border border-border rounded-2xl p-5 shadow-xs gap-4">
+        <View className={`border p-5 shadow-xs gap-4 rounded-[16px] ${
+          isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-200"
+        }`}>
           <View className="flex-row justify-between items-start">
             <View className="flex-1 pr-4">
               <View className="flex-row items-center gap-2 flex-wrap mb-1">
-                <Text className="text-xl font-bold text-slate-800">{w.full_name}</Text>
+                <Text className={`text-xl font-bold ${isDark ? "text-slate-100" : "text-slate-800"}`}>
+                  {w.full_name}
+                </Text>
                 {w.status === "inactive" ? (
-                  <View className="bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-                    <Text className="text-[10px] font-bold text-red-700 uppercase">Inactive</Text>
+                  <View className={`px-2 py-0.5 rounded-full border ${
+                    isDark ? "bg-red-950/40 border-red-800/40" : "bg-red-50 border-red-200"
+                  }`}>
+                    <Text className={`text-[10px] font-bold uppercase ${isDark ? "text-red-400" : "text-red-700"}`}>
+                      Inactive
+                    </Text>
                   </View>
                 ) : (
-                  <View className="bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                    <Text className="text-[10px] font-bold text-green-700 uppercase">Active</Text>
+                  <View className={`px-2 py-0.5 rounded-full border ${
+                    isDark ? "bg-green-950/40 border-green-800/40" : "bg-green-50 border-green-200"
+                  }`}>
+                    <Text className={`text-[10px] font-bold uppercase ${isDark ? "text-green-400" : "text-green-700"}`}>
+                      Active
+                    </Text>
                   </View>
                 )}
               </View>
-              <Text className="text-sm text-slate-500 font-medium">
+              <Text className={`text-sm font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                 {w.worker_type || "Contract Worker"} · {formatCurrency(w.daily_wage)}/day
               </Text>
               {w.joining_date && (
-                <Text className="text-xs text-muted-foreground mt-1.5">
+                <Text className={`text-xs mt-1.5 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                   Joined: {new Date(w.joining_date).toLocaleDateString("en-IN", { dateStyle: "medium" })}
                 </Text>
               )}
             </View>
             {w.mobile && (
-              <TouchableOpacity
+              <PressableScale
                 onPress={handleCall}
-                className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center active:bg-primary/20"
+                className={`w-10 h-10 rounded-[14px] items-center justify-center ${
+                  isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
+                }`}
               >
-                <Phone size={18} color="#1E3A5F" />
-              </TouchableOpacity>
+                <Phone size={18} color={isDark ? "#B8CAD9" : "#173B6C"} />
+              </PressableScale>
             )}
           </View>
           {w.address && (
-            <View className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex-row gap-2">
-              <Info size={14} color="#64748B" className="mt-0.5" />
-              <Text className="text-xs text-slate-600 flex-1">{w.address}</Text>
+            <View className={`p-3 rounded-[14px] border flex-row gap-2 ${
+              isDark ? "bg-slate-800/50 border-slate-700/50" : "bg-slate-55 border-slate-100"
+            }`}>
+              <Info size={14} color={isDark ? "#94A3B8" : "#64748B"} className="mt-0.5" />
+              <Text className={`text-xs flex-1 ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+                {w.address}
+              </Text>
             </View>
           )}
         </View>
 
         {/* Assigned Projects */}
         <View className="gap-2">
-          <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
+          <Text className={`text-xs uppercase font-bold tracking-wider ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
             Assigned Projects
           </Text>
-          <View className="bg-white border border-border rounded-2xl overflow-hidden shadow-xs">
+          <View className={`border overflow-hidden shadow-xs rounded-[16px] ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-200"
+          }`}>
             {stats.assignments.length === 0 ? (
-              <Text className="p-4 text-sm text-muted-foreground text-center">
+              <Text className={`p-4 text-sm text-center ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                 Not assigned to any active project.
               </Text>
             ) : (
@@ -364,20 +399,22 @@ export default function WorkerDetailScreen() {
                 <TouchableOpacity
                   key={a.project_id}
                   onPress={() => router.push(`/projects/${a.project_id}` as any)}
-                  className="p-4 border-b border-slate-50 flex-row justify-between items-center active:bg-slate-50"
+                  className={`p-4 border-b flex-row justify-between items-center ${
+                    isDark ? "border-slate-800 active:bg-slate-800" : "border-slate-50 active:bg-slate-50"
+                  }`}
                 >
                   <View className="flex-row items-center gap-3">
-                    <HardHat size={16} color="#1E3A5F" />
+                    <HardHat size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
                     <View>
-                      <Text className="text-sm font-semibold text-slate-800">
+                      <Text className={`text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                         {a.projects?.name ?? "Project"}
                       </Text>
-                      <Text className="text-[10px] text-muted-foreground mt-0.5">
+                      <Text className={`text-[10px] mt-0.5 ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                         Assigned on {new Date(a.assigned_at).toLocaleDateString()}
                       </Text>
                     </View>
                   </View>
-                  <ChevronRight size={16} color="#94A3B8" />
+                  <ChevronRight size={16} color={isDark ? "#64748B" : "#94A3B8"} />
                 </TouchableOpacity>
               ))
             )}
@@ -386,28 +423,34 @@ export default function WorkerDetailScreen() {
 
         {/* Month Filter Picker */}
         <View className="flex-row items-center justify-between">
-          <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
+          <Text className={`text-xs uppercase font-bold tracking-wider ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
             Attendance Statistics
           </Text>
           <View className="flex-row gap-2">
             {/* Month Dropdown Button */}
             <TouchableOpacity
               onPress={() => setShowMonthSelect(true)}
-              className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl flex-row items-center gap-1"
+              className={`px-3 py-1.5 rounded-[12px] flex-row items-center gap-1 border ${
+                isDark ? "bg-slate-800 border-slate-700 active:bg-slate-750" : "bg-white border-slate-200 active:bg-slate-50"
+              }`}
             >
-              <Text className="text-xs font-semibold text-slate-700">
+              <Text className={`text-xs font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`}>
                 {MONTHS[month - 1]}
               </Text>
-              <Calendar size={12} color="#64748B" />
+              <Calendar size={12} color={isDark ? "#94A3B8" : "#64748B"} />
             </TouchableOpacity>
 
             {/* Year Dropdown Button */}
             <TouchableOpacity
               onPress={() => setShowYearSelect(true)}
-              className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl flex-row items-center gap-1"
+              className={`px-3 py-1.5 rounded-[12px] flex-row items-center gap-1 border ${
+                isDark ? "bg-slate-800 border-slate-700 active:bg-slate-750" : "bg-white border-slate-200 active:bg-slate-50"
+              }`}
             >
-              <Text className="text-xs font-semibold text-slate-700">{year}</Text>
-              <Calendar size={12} color="#64748B" />
+              <Text className={`text-xs font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                {year}
+              </Text>
+              <Calendar size={12} color={isDark ? "#94A3B8" : "#64748B"} />
             </TouchableOpacity>
           </View>
         </View>
@@ -430,7 +473,7 @@ export default function WorkerDetailScreen() {
 
         {/* Financial Summary */}
         <View className="gap-2">
-          <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
+          <Text className={`text-xs uppercase font-bold tracking-wider ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
             Financial Summary
           </Text>
           <View className="gap-3">
@@ -438,7 +481,7 @@ export default function WorkerDetailScreen() {
               <StatCard
                 label="Month Earnings"
                 value={formatCurrency(stats.monthEarnings)}
-                className="flex-1 animate-pulse"
+                className="flex-1"
               />
               <StatCard
                 label="Month Paid"
@@ -478,37 +521,43 @@ export default function WorkerDetailScreen() {
         {/* Payment History & Ledger */}
         <View className="gap-2">
           <View className="flex-row items-center justify-between mb-1">
-            <Text className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
+            <Text className={`text-xs uppercase font-bold tracking-wider ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
               Payment History & Ledger
             </Text>
-            <TouchableOpacity
+            <PressableScale
               onPress={() => setShowPaymentModal(true)}
-              className="bg-primary flex-row items-center gap-1 px-3 py-1.5 rounded-xl active:bg-primary-600"
+              className={`flex-row items-center gap-1 px-3 py-1.5 rounded-[12px] ${
+                isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
+              }`}
             >
-              <Plus size={12} color="#FFFFFF" />
-              <Text className="text-xs font-semibold text-white">Record Payment</Text>
-            </TouchableOpacity>
+              <Plus size={12} color={isDark ? "#0F172A" : "#FFFFFF"} />
+              <Text className={`text-xs font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>
+                Record Payment
+              </Text>
+            </PressableScale>
           </View>
 
-          <View className="bg-white border border-border rounded-2xl overflow-hidden shadow-xs divide-y divide-slate-100">
+          <View className={`border overflow-hidden shadow-xs rounded-[16px] divide-y ${
+            isDark ? "bg-[#1E293B] border-slate-800 divide-slate-800" : "bg-white border-slate-200 divide-slate-100"
+          }`}>
             {payments.length === 0 ? (
-              <Text className="p-5 text-sm text-muted-foreground text-center">
+              <Text className={`p-5 text-sm text-center ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                 No payment history recorded yet.
               </Text>
             ) : (
               payments.map((p) => (
-                <View key={p.id} className="p-4 flex-row justify-between items-center bg-white">
+                <View key={p.id} className={`p-4 flex-row justify-between items-center ${isDark ? "bg-[#1E293B]" : "bg-white"}`}>
                   <View className="flex-1 pr-4">
-                    <Text className="text-sm font-semibold text-slate-800">
+                    <Text className={`text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                       {formatLedgerDate(p.paid_on)}
                     </Text>
                     {p.note && (
-                      <Text className="text-xs text-slate-400 italic mt-0.5">
+                      <Text className={`text-xs italic mt-0.5 ${isDark ? "text-slate-400" : "text-slate-400"}`}>
                         {p.note}
                       </Text>
                     )}
                   </View>
-                  <Text className="text-base font-bold text-success font-mono">
+                  <Text className={`text-base font-bold font-mono ${isDark ? "text-emerald-400" : "text-green-600"}`}>
                     {formatCurrency(p.amount)}
                   </Text>
                 </View>
@@ -523,10 +572,14 @@ export default function WorkerDetailScreen() {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setShowMonthSelect(false)}
-          className="flex-1 bg-black/40 justify-center items-center"
+          className="flex-1 bg-black/60 justify-center items-center"
         >
-          <View className="bg-white w-[80%] rounded-2xl p-4 gap-3 max-h-[70%]">
-            <Text className="text-base font-bold text-slate-800 pb-2 border-b border-slate-100">
+          <View className={`w-[80%] p-4 gap-3 max-h-[70%] rounded-[16px] border ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+          }`}>
+            <Text className={`text-base font-bold pb-2 border-b ${
+              isDark ? "text-slate-100 border-slate-800" : "text-slate-800 border-slate-100"
+            }`}>
               Select Month
             </Text>
             <ScrollView contentContainerClassName="gap-1">
@@ -538,12 +591,14 @@ export default function WorkerDetailScreen() {
                     setShowMonthSelect(false);
                   }}
                   className={`py-3 px-4 rounded-xl ${
-                    month === idx + 1 ? "bg-primary/5" : ""
+                    month === idx + 1 ? (isDark ? "bg-slate-800" : "bg-primary/5") : ""
                   }`}
                 >
                   <Text
                     className={`font-semibold ${
-                      month === idx + 1 ? "text-primary text-base" : "text-slate-700 text-sm"
+                      month === idx + 1
+                        ? isDark ? "text-[#B8CAD9] text-base" : "text-[#173B6C] text-base"
+                        : isDark ? "text-slate-400 text-sm" : "text-slate-700 text-sm"
                     }`}
                   >
                     {mName}
@@ -560,10 +615,14 @@ export default function WorkerDetailScreen() {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setShowYearSelect(false)}
-          className="flex-1 bg-black/40 justify-center items-center"
+          className="flex-1 bg-black/60 justify-center items-center"
         >
-          <View className="bg-white w-[80%] rounded-2xl p-4 gap-3">
-            <Text className="text-base font-bold text-slate-800 pb-2 border-b border-slate-100">
+          <View className={`w-[80%] p-4 gap-3 rounded-[16px] border ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+          }`}>
+            <Text className={`text-base font-bold pb-2 border-b ${
+              isDark ? "text-slate-100 border-slate-800" : "text-slate-800 border-slate-100"
+            }`}>
               Select Year
             </Text>
             {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
@@ -573,11 +632,15 @@ export default function WorkerDetailScreen() {
                   setYear(y);
                   setShowYearSelect(false);
                 }}
-                className={`py-3 px-4 rounded-xl ${year === y ? "bg-primary/5" : ""}`}
+                className={`py-3 px-4 rounded-xl ${
+                  year === y ? (isDark ? "bg-slate-800" : "bg-primary/5") : ""
+                }`}
               >
                 <Text
                   className={`font-semibold ${
-                    year === y ? "text-primary text-base" : "text-slate-700 text-sm"
+                    year === y
+                      ? isDark ? "text-[#B8CAD9] text-base" : "text-[#173B6C] text-base"
+                      : isDark ? "text-slate-400 text-sm" : "text-slate-700 text-sm"
                   }`}
                 >
                   {y}
@@ -595,31 +658,41 @@ export default function WorkerDetailScreen() {
         transparent
         onRequestClose={() => setShowPaymentModal(false)}
       >
-        <View className="flex-1 justify-end bg-black/50">
+        <View className="flex-1 justify-end bg-black/60">
           <View
             style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
-            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border"
+            className={`rounded-t-3xl p-6 gap-4 border-t ${
+              isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
+            }`}
           >
             {/* Header */}
-            <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
+            <View className={`flex-row justify-between items-center pb-2 border-b ${
+              isDark ? "border-slate-800" : "border-slate-100"
+            }`}>
               <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-lg bg-green-100 items-center justify-center">
-                  <CreditCard size={16} color="#16A34A" />
+                <View className={`w-8 h-8 rounded-lg items-center justify-center ${
+                  isDark ? "bg-slate-800" : "bg-green-100"
+                }`}>
+                  <CreditCard size={16} color={isDark ? "#B8CAD9" : "#16A34A"} />
                 </View>
-                <Text className="text-lg font-bold text-slate-800">Record Payment</Text>
+                <Text className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-slate-800"}`}>
+                  Record Payment
+                </Text>
               </View>
               <TouchableOpacity
                 onPress={() => setShowPaymentModal(false)}
-                className="p-1 rounded-full bg-slate-100"
+                className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
               >
-                <X size={18} color="#64748B" />
+                <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
             {/* Form */}
             <View className="gap-4">
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Amount Paid (₹)</Text>
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                  Amount Paid (₹)
+                </Text>
                 <TextInput
                   value={amount}
                   onChangeText={(val) => {
@@ -628,9 +701,11 @@ export default function WorkerDetailScreen() {
                     validateField("amount", cleaned);
                   }}
                   placeholder="Enter amount"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                   keyboardType="number-pad"
-                  className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                  className={`h-11 px-3 border rounded-[14px] text-base ${
+                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                  }`}
                 />
                 {errors.amount && <Text className="text-xs text-red-500">{errors.amount}</Text>}
               </View>
@@ -642,39 +717,51 @@ export default function WorkerDetailScreen() {
               />
 
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Note / Details</Text>
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                  Note / Details
+                </Text>
                 <TextInput
                   value={note}
                   onChangeText={setNote}
                   placeholder="Cash payment, weekly advance..."
-                  placeholderTextColor="#94A3B8"
-                  className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  className={`h-11 px-3 border rounded-[14px] text-base ${
+                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                  }`}
                 />
               </View>
             </View>
 
             {/* Footer */}
-            <View className="flex-row gap-3 pt-3 border-t border-slate-100">
+            <View className={`flex-row gap-3 pt-3 border-t ${isDark ? "border-slate-800" : "border-slate-100"}`}>
               <TouchableOpacity
                 onPress={() => setShowPaymentModal(false)}
-                className="flex-1 h-12 rounded-xl border border-slate-200 justify-center items-center bg-white"
+                className={`flex-1 h-12 rounded-[14px] border justify-center items-center ${
+                  isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
+                }`}
               >
-                <Text className="text-base font-semibold text-slate-600">Cancel</Text>
+                <Text className={`text-base font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleRecordPayment}
                 disabled={recordPaymentMutation.isPending}
-                className={`flex-1 h-12 rounded-xl bg-primary justify-center items-center active:bg-primary-600 ${
-                  recordPaymentMutation.isPending ? "opacity-50" : ""
-                }`}
+                className={`flex-1 h-12 rounded-[14px] justify-center items-center ${
+                  isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
+                } ${recordPaymentMutation.isPending ? "opacity-50" : ""}`}
               >
                 {recordPaymentMutation.isPending ? (
                   <View className="flex-row items-center gap-2">
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <Text className="text-base font-semibold text-white">Recording...</Text>
+                    <ActivityIndicator size="small" color={isDark ? "#0F172A" : "#FFFFFF"} />
+                    <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>
+                      Recording...
+                    </Text>
                   </View>
                 ) : (
-                  <Text className="text-base font-semibold text-white">Record Payment</Text>
+                  <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>
+                    Record Payment
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -689,24 +776,32 @@ export default function WorkerDetailScreen() {
         transparent
         onRequestClose={() => setShowEditModal(false)}
       >
-        <View className="flex-1 justify-end bg-black/50">
+        <View className="flex-1 justify-end bg-black/60">
           <View
             style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
-            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[85%]"
+            className={`rounded-t-3xl p-6 gap-4 border-t max-h-[85%] ${
+              isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-border"
+            }`}
           >
             {/* Header */}
-            <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
+            <View className={`flex-row justify-between items-center pb-2 border-b ${
+              isDark ? "border-slate-800" : "border-slate-100"
+            }`}>
               <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-lg bg-primary/10 items-center justify-center">
-                  <Pencil size={16} color="#1E3A5F" />
+                <View className={`w-8 h-8 rounded-lg items-center justify-center ${
+                  isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
+                }`}>
+                  <Pencil size={16} color={isDark ? "#B8CAD9" : "#173B6C"} />
                 </View>
-                <Text className="text-lg font-bold text-foreground">Edit Worker Profile</Text>
+                <Text className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-slate-800"}`}>
+                  Edit Worker Profile
+                </Text>
               </View>
               <TouchableOpacity
                 onPress={() => setShowEditModal(false)}
-                className="p-1 rounded-full bg-slate-100"
+                className={`p-1 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
               >
-                <X size={18} color="#64748B" />
+                <X size={18} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
@@ -717,7 +812,9 @@ export default function WorkerDetailScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Full Name</Text>
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                  Full Name
+                </Text>
                 <TextInput
                   value={fullName}
                   onChangeText={(val) => {
@@ -725,15 +822,19 @@ export default function WorkerDetailScreen() {
                     validateField("fullName", val);
                   }}
                   placeholder="Full name"
-                  placeholderTextColor="#94A3B8"
-                  className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  className={`h-11 px-3 border rounded-[14px] text-base ${
+                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                  }`}
                 />
                 {errors.fullName && <Text className="text-xs text-red-500">{errors.fullName}</Text>}
               </View>
 
               <View className="flex-row gap-3">
                 <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Mobile</Text>
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                    Mobile
+                  </Text>
                   <TextInput
                     value={mobile}
                     onChangeText={(val) => {
@@ -742,27 +843,35 @@ export default function WorkerDetailScreen() {
                       validateField("mobile", cleaned);
                     }}
                     placeholder="9999999999"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                     keyboardType="number-pad"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                    className={`h-11 px-3 border rounded-[14px] text-base ${
+                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                    }`}
                   />
                   {errors.mobile && <Text className="text-xs text-red-500">{errors.mobile}</Text>}
                 </View>
                 <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Type / Skill</Text>
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                    Type / Skill
+                  </Text>
                   <TextInput
                     value={workerType}
                     onChangeText={setWorkerType}
                     placeholder="Mason, Helper..."
-                    placeholderTextColor="#94A3B8"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                    className={`h-11 px-3 border rounded-[14px] text-base ${
+                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                    }`}
                   />
                 </View>
               </View>
 
               <View className="flex-row gap-3">
                 <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Daily Wage (₹)</Text>
+                  <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                    Daily Wage (₹)
+                  </Text>
                   <TextInput
                     value={dailyWage}
                     onChangeText={(val) => {
@@ -771,9 +880,11 @@ export default function WorkerDetailScreen() {
                       validateField("dailyWage", cleaned);
                     }}
                     placeholder="500"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                     keyboardType="number-pad"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
+                    className={`h-11 px-3 border rounded-[14px] text-base ${
+                      isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                    }`}
                   />
                   {errors.dailyWage && <Text className="text-xs text-red-500">{errors.dailyWage}</Text>}
                 </View>
@@ -785,30 +896,49 @@ export default function WorkerDetailScreen() {
               </View>
 
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Address</Text>
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                  Address
+                </Text>
                 <TextInput
                   value={address}
                   onChangeText={setAddress}
                   placeholder="Address details"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                   multiline
                   numberOfLines={2}
-                  className="px-3 py-2 border border-slate-200 rounded-xl bg-white text-base text-slate-800 min-h-[60px]"
+                  className={`px-3 py-2 border rounded-[14px] text-base min-h-[60px] ${
+                    isDark ? "bg-slate-800 border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-850"
+                  }`}
                 />
               </View>
 
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Status</Text>
-                <View className="flex-row bg-slate-100 rounded-xl p-1">
+                <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                  Status
+                </Text>
+                <View className={`flex-row rounded-[14px] p-1 ${
+                  isDark ? "bg-slate-800" : "bg-slate-100"
+                }`}>
                   <TouchableOpacity
                     onPress={() => setStatus("active")}
                     className={`flex-1 py-2 rounded-lg items-center ${
-                      status === "active" ? "bg-white shadow-sm" : ""
+                      status === "active"
+                        ? isDark ? "bg-slate-700" : "bg-white"
+                        : ""
                     }`}
+                    style={
+                      status === "active"
+                        ? isDark
+                          ? { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }
+                          : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1.5, elevation: 1 }
+                        : undefined
+                    }
                   >
                     <Text
                       className={`text-xs font-semibold ${
-                        status === "active" ? "text-slate-800" : "text-slate-500"
+                        status === "active"
+                          ? isDark ? "text-slate-200" : "text-slate-800"
+                          : "text-slate-500"
                       }`}
                     >
                       Active
@@ -817,12 +947,23 @@ export default function WorkerDetailScreen() {
                   <TouchableOpacity
                     onPress={() => setStatus("inactive")}
                     className={`flex-1 py-2 rounded-lg items-center ${
-                      status === "inactive" ? "bg-white shadow-sm" : ""
+                      status === "inactive"
+                        ? isDark ? "bg-slate-700" : "bg-white"
+                        : ""
                     }`}
+                    style={
+                      status === "inactive"
+                        ? isDark
+                          ? { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }
+                          : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1.5, elevation: 1 }
+                        : undefined
+                    }
                   >
                     <Text
                       className={`text-xs font-semibold ${
-                        status === "inactive" ? "text-red-600" : "text-slate-500"
+                        status === "inactive"
+                          ? "text-red-500"
+                          : "text-slate-500"
                       }`}
                     >
                       Inactive
@@ -833,27 +974,35 @@ export default function WorkerDetailScreen() {
             </ScrollView>
 
             {/* Footer */}
-            <View className="flex-row gap-3 pt-3 border-t border-slate-100">
+            <View className={`flex-row gap-3 pt-3 border-t ${isDark ? "border-slate-800" : "border-slate-100"}`}>
               <TouchableOpacity
                 onPress={() => setShowEditModal(false)}
-                className="flex-1 h-12 rounded-xl border border-slate-200 justify-center items-center bg-white"
+                className={`flex-1 h-12 rounded-[14px] border justify-center items-center ${
+                  isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200 active:bg-slate-50"
+                }`}
               >
-                <Text className="text-base font-semibold text-slate-600">Cancel</Text>
+                <Text className={`text-base font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSaveEdit}
                 disabled={editMutation.isPending}
-                className={`flex-1 h-12 rounded-xl bg-primary justify-center items-center active:bg-primary-600 ${
-                  editMutation.isPending ? "opacity-50" : ""
-                }`}
+                className={`flex-1 h-12 rounded-[14px] justify-center items-center ${
+                  isDark ? "bg-[#B8CAD9]" : "bg-[#173B6C] active:bg-[#122c52]"
+                } ${editMutation.isPending ? "opacity-50" : ""}`}
               >
                 {editMutation.isPending ? (
                   <View className="flex-row items-center gap-2">
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <Text className="text-base font-semibold text-white">Saving...</Text>
+                    <ActivityIndicator size="small" color={isDark ? "#0F172A" : "#FFFFFF"} />
+                    <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>
+                      Saving...
+                    </Text>
                   </View>
                 ) : (
-                  <Text className="text-base font-semibold text-white">Save Changes</Text>
+                  <Text className={`text-base font-semibold ${isDark ? "text-slate-900" : "text-white"}`}>
+                    Save Changes
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -878,26 +1027,48 @@ function StatCard({
   isAdvance?: boolean;
   className?: string;
 }) {
-  const containerClass = highlight
-    ? isAdvance
-      ? "bg-amber-500 border-amber-600"
-      : "bg-primary border-primary"
-    : "bg-white border-border";
+  const isDark = useIsDark();
 
-  const textLabelClass = highlight
-    ? isAdvance
-      ? "text-amber-50"
-      : "text-primary-foreground/80"
-    : "text-muted-foreground";
+  let containerClass = "";
+  let textLabelClass = "";
+  let textValueClass = "";
 
-  const textValueClass = highlight
-    ? isAdvance
-      ? "text-white"
-      : "text-white"
-    : "text-slate-800";
+  if (highlight) {
+    if (isAdvance) {
+      if (isDark) {
+        containerClass = "bg-amber-950/60 border-amber-800/50";
+        textLabelClass = "text-amber-400/80";
+        textValueClass = "text-amber-200";
+      } else {
+        containerClass = "bg-amber-500 border-amber-600";
+        textLabelClass = "text-amber-50";
+        textValueClass = "text-white";
+      }
+    } else {
+      if (isDark) {
+        containerClass = "bg-slate-800 border-slate-700";
+        textLabelClass = "text-slate-400";
+        textValueClass = "text-slate-100";
+      } else {
+        containerClass = "bg-[#173B6C] border-[#173B6C]";
+        textLabelClass = "text-slate-200/80";
+        textValueClass = "text-white";
+      }
+    }
+  } else {
+    if (isDark) {
+      containerClass = "bg-[#1E293B] border-slate-800";
+      textLabelClass = "text-slate-400";
+      textValueClass = "text-slate-200";
+    } else {
+      containerClass = "bg-white border-slate-200";
+      textLabelClass = "text-slate-500";
+      textValueClass = "text-slate-800";
+    }
+  }
 
   return (
-    <View className={`p-4 rounded-2xl border shadow-sm ${containerClass} ${className}`}>
+    <View className={`p-4 rounded-[16px] border shadow-xs ${containerClass} ${className}`}>
       <Text className={`text-[10px] font-bold uppercase tracking-wider ${textLabelClass}`}>
         {label}
       </Text>

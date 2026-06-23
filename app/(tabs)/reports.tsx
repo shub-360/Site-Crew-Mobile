@@ -29,7 +29,7 @@ import { generateMonthlyReport, shareReport } from "@/lib/reports.functions";
 import { getAttendanceMatrix, listProjectsWithStats } from "@/lib/stats.functions";
 import { formatCurrency } from "@/lib/format";
 import { handleApiError } from "@/lib/errors";
-
+import { useIsDark } from "@/hooks/use-is-dark";
 
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -40,6 +40,7 @@ export default function ReportsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
+  const isDark = useIsDark();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -143,52 +144,70 @@ export default function ReportsScreen() {
     return "";
   }
 
-  function cellStyle(c: string) {
-    if (c === "full") return "bg-primary/10 border-primary/20 text-primary";
-    if (c === "half") return "bg-amber-50 border-amber-200 text-amber-700";
-    if (c === "overtime") return "bg-green-50 border-green-200 text-green-700";
-    if (c === "absent") return "bg-red-50 border-red-200 text-red-700";
-    return "bg-slate-50 border-slate-100 text-slate-350";
+  function cellStyle(c: string, isDarkTheme: boolean) {
+    if (isDarkTheme) {
+      if (c === "full") return "bg-[#B8CAD9]/15 border-[#B8CAD9]/20 text-[#B8CAD9]";
+      if (c === "half") return "bg-amber-500/15 border-amber-500/20 text-amber-400";
+      if (c === "overtime") return "bg-green-500/15 border-green-500/20 text-green-400";
+      if (c === "absent") return "bg-red-500/15 border-red-500/20 text-red-400";
+      return "bg-slate-800 border-slate-750 text-slate-600";
+    } else {
+      if (c === "full") return "bg-primary/10 border-primary/20 text-primary";
+      if (c === "half") return "bg-amber-50 border-amber-200 text-amber-700";
+      if (c === "overtime") return "bg-green-50 border-green-200 text-green-700";
+      if (c === "absent") return "bg-red-50 border-red-200 text-red-700";
+      return "bg-slate-50 border-slate-100 text-slate-350";
+    }
   }
 
   return (
-    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["top", "left", "right"]} className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
       <ScrollView
         contentContainerClassName="px-4 py-5 pb-32 gap-4"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E3A5F"]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[isDark ? "#B8CAD9" : "#173B6C"]}
+          />
         }
       >
         {/* Filters Card */}
-        <View className="bg-white border border-border rounded-2xl p-4 shadow-xs gap-3">
+        <View className={`border rounded-2xl p-4 shadow-xs gap-3 ${
+          isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+        }`}>
           <View className="flex-row gap-3">
             {/* Month Filter */}
             <View className="flex-1 gap-1">
-              <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <Text className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-405"}`}>
                 Month
               </Text>
               <TouchableOpacity
                 onPress={() => setShowMonthSelect(true)}
-                className="bg-slate-50 border border-slate-200 px-3 h-10 rounded-xl flex-row items-center justify-between"
+                className={`px-3 h-10 border rounded-[14px] flex-row items-center justify-between ${
+                  isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+                }`}
               >
-                <Text className="text-sm font-semibold text-slate-700">
+                <Text className={`text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>
                   {MONTHS[month - 1]}
                 </Text>
-                <CalendarIcon size={14} color="#64748B" />
+                <CalendarIcon size={14} color={isDark ? "#B8CAD9" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
             {/* Year Filter */}
             <View className="flex-1 gap-1">
-              <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <Text className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-405"}`}>
                 Year
               </Text>
               <TouchableOpacity
                 onPress={() => setShowYearSelect(true)}
-                className="bg-slate-50 border border-slate-200 px-3 h-10 rounded-xl flex-row items-center justify-between"
+                className={`px-3 h-10 border rounded-[14px] flex-row items-center justify-between ${
+                  isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+                }`}
               >
-                <Text className="text-sm font-semibold text-slate-700">{year}</Text>
-                <CalendarIcon size={14} color="#64748B" />
+                <Text className={`text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>{year}</Text>
+                <CalendarIcon size={14} color={isDark ? "#B8CAD9" : "#64748B"} />
               </TouchableOpacity>
             </View>
           </View>
@@ -196,49 +215,62 @@ export default function ReportsScreen() {
           <View className="flex-row gap-3">
             {/* Project Filter */}
             <View className="flex-1 gap-1">
-              <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <Text className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-405"}`}>
                 Project Filter
               </Text>
               <TouchableOpacity
                 onPress={() => setShowProjectSelect(true)}
-                className="bg-slate-50 border border-slate-200 px-3 h-10 rounded-xl flex-row items-center justify-between"
+                className={`px-3 h-10 border rounded-[14px] flex-row items-center justify-between ${
+                  isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+                }`}
               >
-                <Text className="text-xs font-semibold text-slate-700 truncate flex-1 pr-1" numberOfLines={1}>
+                <Text className={`text-xs font-semibold truncate flex-1 pr-1 ${isDark ? "text-slate-200" : "text-slate-700"}`} numberOfLines={1}>
                   {selectedProjectName}
                 </Text>
-                <HardHat size={14} color="#64748B" />
+                <HardHat size={14} color={isDark ? "#B8CAD9" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
             {/* Worker Filter (Only affects summary export) */}
             <View className="flex-1 gap-1">
-              <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <Text className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-405"}`}>
                 Worker Filter
               </Text>
               <TouchableOpacity
                 onPress={() => setShowWorkerSelect(true)}
-                className="bg-slate-50 border border-slate-200 px-3 h-10 rounded-xl flex-row items-center justify-between"
+                className={`px-3 h-10 border rounded-[14px] flex-row items-center justify-between ${
+                  isDark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
+                }`}
               >
-                <Text className="text-xs font-semibold text-slate-700 truncate flex-1 pr-1" numberOfLines={1}>
+                <Text className={`text-xs font-semibold truncate flex-1 pr-1 ${isDark ? "text-slate-200" : "text-slate-700"}`} numberOfLines={1}>
                   {selectedWorkerName}
                 </Text>
-                <Users size={14} color="#64748B" />
+                <Users size={14} color={isDark ? "#B8CAD9" : "#64748B"} />
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
         {/* Custom Tab Bar */}
-        <View className="flex-row bg-slate-200/60 border border-slate-200 rounded-2xl p-1">
+        <View className={`flex-row border rounded-[14px] p-1 ${
+          isDark ? "bg-slate-800 border-slate-700" : "bg-slate-200/60 border-slate-200"
+        }`}>
           <TouchableOpacity
             onPress={() => setActiveTab("summary")}
             className={`flex-1 py-2.5 rounded-xl items-center ${
-              activeTab === "summary" ? "bg-white shadow-xs" : ""
+              activeTab === "summary" ? (isDark ? "bg-slate-700" : "bg-white") : ""
             }`}
+            style={
+              activeTab === "summary"
+                ? isDark
+                  ? { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }
+                  : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1.5, elevation: 1 }
+                : undefined
+            }
           >
             <Text
               className={`text-xs font-bold ${
-                activeTab === "summary" ? "text-slate-800" : "text-slate-500"
+                activeTab === "summary" ? (isDark ? "text-slate-200" : "text-slate-800") : "text-slate-500"
               }`}
             >
               XLSX Export
@@ -247,12 +279,19 @@ export default function ReportsScreen() {
           <TouchableOpacity
             onPress={() => setActiveTab("calendar")}
             className={`flex-1 py-2.5 rounded-xl items-center ${
-              activeTab === "calendar" ? "bg-white shadow-xs" : ""
+              activeTab === "calendar" ? (isDark ? "bg-slate-700" : "bg-white") : ""
             }`}
+            style={
+              activeTab === "calendar"
+                ? isDark
+                  ? { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }
+                  : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1.5, elevation: 1 }
+                : undefined
+            }
           >
             <Text
               className={`text-xs font-bold ${
-                activeTab === "calendar" ? "text-slate-800" : "text-slate-500"
+                activeTab === "calendar" ? (isDark ? "text-slate-200" : "text-slate-800") : "text-slate-500"
               }`}
             >
               Calendar Matrix
@@ -261,12 +300,19 @@ export default function ReportsScreen() {
           <TouchableOpacity
             onPress={() => setActiveTab("cost")}
             className={`flex-1 py-2.5 rounded-xl items-center ${
-              activeTab === "cost" ? "bg-white shadow-xs" : ""
+              activeTab === "cost" ? (isDark ? "bg-slate-700" : "bg-white") : ""
             }`}
+            style={
+              activeTab === "cost"
+                ? isDark
+                  ? { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }
+                  : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1.5, elevation: 1 }
+                : undefined
+            }
           >
             <Text
               className={`text-xs font-bold ${
-                activeTab === "cost" ? "text-slate-800" : "text-slate-500"
+                activeTab === "cost" ? (isDark ? "text-slate-200" : "text-slate-800") : "text-slate-500"
               }`}
             >
               Cost Report
@@ -276,14 +322,20 @@ export default function ReportsScreen() {
 
         {/* Tab Contents */}
         {activeTab === "summary" && (
-          <View className="bg-white border border-border rounded-2xl p-5 shadow-xs gap-5">
+          <View className={`border rounded-2xl p-5 shadow-xs gap-5 ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+          }`}>
             <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center">
-                <FileSpreadsheet size={20} color="#1E3A5F" />
+              <View className={`w-10 h-10 rounded-xl items-center justify-center ${
+                isDark ? "bg-slate-800" : "bg-[#173B6C]/10"
+              }`}>
+                <FileSpreadsheet size={20} color={isDark ? "#B8CAD9" : "#1E3A5F"} />
               </View>
               <View className="flex-1">
-                <Text className="text-base font-bold text-slate-800">Sitecrew Report (XLSX)</Text>
-                <Text className="text-xs text-muted-foreground mt-0.5 leading-normal">
+                <Text className={`text-base font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
+                  Sitecrew Report (XLSX)
+                </Text>
+                <Text className={`text-xs mt-0.5 leading-normal ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                   Generates an Excel spreadsheet with 3 worksheets: Workforce Summary, Attendance Calendar, and Labour Cost.
                 </Text>
               </View>
@@ -292,14 +344,18 @@ export default function ReportsScreen() {
             <TouchableOpacity
               onPress={() => generateMutation.mutate()}
               disabled={generateMutation.isPending}
-              className="bg-primary flex-row items-center justify-center gap-2 h-12 rounded-xl active:bg-primary-600 shadow-xs"
+              className={`flex-row items-center justify-center gap-2 h-12 rounded-[14px] shadow-xs ${
+                isDark ? "bg-slate-800 border border-slate-700 active:bg-slate-700" : "bg-[#173B6C] active:bg-primary-600"
+              }`}
             >
               {generateMutation.isPending ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={isDark ? "#B8CAD9" : "#FFFFFF"} />
               ) : (
                 <>
-                  <Download size={16} color="#FFFFFF" />
-                  <Text className="text-sm font-bold text-white">Generate & Share Report</Text>
+                  <Download size={16} color={isDark ? "#B8CAD9" : "#FFFFFF"} />
+                  <Text className={`text-sm font-bold ${isDark ? "text-slate-200" : "text-white"}`}>
+                    Generate & Share Report
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -307,11 +363,13 @@ export default function ReportsScreen() {
         )}
 
         {activeTab === "calendar" && (
-          <View className="bg-white border border-border rounded-2xl shadow-xs overflow-hidden">
+          <View className={`border rounded-2xl shadow-xs overflow-hidden ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+          }`}>
             {loadingMatrix ? (
-              <ActivityIndicator size="large" color="#1E3A5F" className="py-12" />
+              <ActivityIndicator size="large" color={isDark ? "#B8CAD9" : "#173B6C"} className="py-12" />
             ) : !matrix || matrix.rows.length === 0 ? (
-              <Text className="p-8 text-sm text-muted-foreground text-center">
+              <Text className={`p-8 text-sm text-center ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                 No attendance logs found for this filter in {MONTHS[month - 1]} {year}.
               </Text>
             ) : (
@@ -320,10 +378,14 @@ export default function ReportsScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View>
                     {/* Header Row */}
-                    <View className="flex-row border-b border-slate-100 items-center h-10 bg-slate-50/50">
+                    <View className={`flex-row border-b items-center h-10 ${
+                      isDark ? "bg-slate-800 border-slate-750" : "bg-slate-50/50 border-slate-100"
+                    }`}>
                       {/* Name sticky space header */}
-                      <View className="w-24 px-3 justify-center h-full border-r border-slate-100">
-                        <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <View className={`w-24 px-3 justify-center h-full border-r ${
+                        isDark ? "border-slate-750" : "border-slate-100"
+                      }`}>
+                        <Text className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                           Worker
                         </Text>
                       </View>
@@ -331,9 +393,11 @@ export default function ReportsScreen() {
                       {Array.from({ length: matrix.days }, (_, i) => i + 1).map((d) => (
                         <View
                           key={d}
-                          className="w-8 items-center justify-center h-full border-r border-slate-100"
+                          className={`w-8 items-center justify-center h-full border-r ${
+                            isDark ? "border-slate-750" : "border-slate-100"
+                          }`}
                         >
-                          <Text className="text-[10px] font-bold text-slate-600 font-mono">
+                          <Text className={`text-[10px] font-bold font-mono ${isDark ? "text-slate-300" : "text-slate-600"}`}>
                             {d}
                           </Text>
                         </View>
@@ -344,21 +408,28 @@ export default function ReportsScreen() {
                     {matrix.rows.map((row: any) => (
                       <View
                         key={row.worker_id}
-                        className="flex-row border-b border-slate-100 items-center h-10 bg-white"
+                        className={`flex-row border-b items-center h-10 ${
+                          isDark ? "border-slate-750 bg-[#1E293B]" : "border-slate-100 bg-white"
+                        }`}
                       >
-                        <View className="w-24 px-3 justify-center h-full border-r border-slate-100 bg-white">
-                          <Text className="text-xs font-bold text-slate-800 truncate" numberOfLines={1}>
+                        <View className={`w-24 px-3 justify-center h-full border-r ${
+                          isDark ? "border-slate-750 bg-[#1E293B]" : "border-slate-100 bg-white"
+                        }`}>
+                          <Text className={`text-xs font-bold truncate ${isDark ? "text-slate-200" : "text-slate-800"}`} numberOfLines={1}>
                             {row.name}
                           </Text>
                         </View>
                         {row.cells.map((cell: string, idx: number) => (
                           <View
                             key={idx}
-                            className="w-8 items-center justify-center h-full border-r border-slate-100"
+                            className={`w-8 items-center justify-center h-full border-r ${
+                              isDark ? "border-slate-750" : "border-slate-100"
+                            }`}
                           >
                             <View
                               className={`w-6 h-6 rounded-md items-center justify-center border ${cellStyle(
-                                cell
+                                cell,
+                                isDark
                               )}`}
                             >
                               <Text className="text-[9px] font-bold font-mono">
@@ -373,17 +444,19 @@ export default function ReportsScreen() {
                 </ScrollView>
 
                 {/* Legend panel */}
-                <View className="p-4 border-t border-slate-100 bg-slate-50/50 flex-row gap-4 flex-wrap justify-center">
-                  <Text className="text-[10px] font-semibold text-slate-500">
-                    <Text className="font-bold text-primary font-mono">P</Text> = Present (Full)
+                <View className={`p-4 border-t flex-row gap-4 flex-wrap justify-center ${
+                  isDark ? "border-slate-750 bg-slate-800/40" : "border-slate-100 bg-slate-50/50"
+                }`}>
+                  <Text className={`text-[10px] font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                    <Text className={`font-bold font-mono ${isDark ? "text-[#B8CAD9]" : "text-primary"}`}>P</Text> = Present (Full)
                   </Text>
-                  <Text className="text-[10px] font-semibold text-slate-500">
+                  <Text className={`text-[10px] font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                     <Text className="font-bold text-amber-600 font-mono">H</Text> = Half Day
                   </Text>
-                  <Text className="text-[10px] font-semibold text-slate-500">
+                  <Text className={`text-[10px] font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                     <Text className="font-bold text-green-600 font-mono">O</Text> = Overtime
                   </Text>
-                  <Text className="text-[10px] font-semibold text-slate-500">
+                  <Text className={`text-[10px] font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                     <Text className="font-bold text-red-500 font-mono">A</Text> = Absent
                   </Text>
                 </View>
@@ -393,11 +466,13 @@ export default function ReportsScreen() {
         )}
 
         {activeTab === "cost" && (
-          <View className="bg-white border border-border rounded-2xl overflow-hidden shadow-xs divide-y divide-slate-100">
+          <View className={`border rounded-2xl overflow-hidden shadow-xs divide-y ${
+            isDark ? "bg-[#1E293B] border-slate-800 divide-slate-800" : "bg-white border-border divide-slate-100"
+          }`}>
             {loadingProjStats ? (
-              <ActivityIndicator size="large" color="#1E3A5F" className="py-12" />
+              <ActivityIndicator size="large" color={isDark ? "#B8CAD9" : "#173B6C"} className="py-12" />
             ) : projStats.length === 0 ? (
-              <Text className="p-8 text-sm text-muted-foreground text-center">
+              <Text className={`p-8 text-sm text-center ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
                 No active projects found.
               </Text>
             ) : (
@@ -405,13 +480,15 @@ export default function ReportsScreen() {
                 <TouchableOpacity
                   key={p.id}
                   onPress={() => router.push(`/projects/${p.id}` as any)}
-                  className="p-4 flex-row justify-between items-center bg-white active:bg-slate-50"
+                  className={`p-4 flex-row justify-between items-center ${
+                    isDark ? "bg-[#1E293B] active:bg-slate-800" : "bg-white active:bg-slate-50"
+                  }`}
                 >
                   <View className="flex-1 pr-3">
-                    <Text className="font-bold text-slate-800 text-sm truncate">
+                    <Text className={`font-bold text-sm truncate ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                       {p.name}
                     </Text>
-                    <Text className="text-xs text-slate-400 mt-0.5 font-mono">
+                    <Text className={`text-xs mt-0.5 font-mono ${isDark ? "text-slate-450" : "text-slate-400"}`}>
                       {p.assignedCount} workers · avg{" "}
                       {formatCurrency(
                         p.assignedCount > 0 ? Math.round(p.monthCost / p.assignedCount) : 0
@@ -420,10 +497,10 @@ export default function ReportsScreen() {
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-1">
-                    <Text className="text-base font-bold text-primary font-mono">
+                    <Text className={`text-base font-bold font-mono ${isDark ? "text-[#B8CAD9]" : "text-primary"}`}>
                       {formatCurrency(p.monthCost)}
                     </Text>
-                    <ChevronRight size={14} color="#94A3B8" />
+                    <ChevronRight size={14} color={isDark ? "#64748B" : "#94A3B8"} />
                   </View>
                 </TouchableOpacity>
               ))
@@ -437,10 +514,14 @@ export default function ReportsScreen() {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setShowMonthSelect(false)}
-          className="flex-1 bg-black/40 justify-center items-center"
+          className={`flex-1 justify-center items-center ${isDark ? "bg-black/60" : "bg-black/40"}`}
         >
-          <View className="bg-white w-[80%] rounded-2xl p-4 gap-3 max-h-[70%]">
-            <Text className="text-base font-bold text-slate-800 pb-2 border-b border-slate-100">
+          <View className={`w-[80%] rounded-2xl p-4 gap-3 max-h-[70%] border ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-150"
+          }`}>
+            <Text className={`text-base font-bold pb-2 border-b ${
+              isDark ? "text-slate-200 border-slate-800" : "text-slate-800 border-slate-100"
+            }`}>
               Select Month
             </Text>
             <ScrollView contentContainerClassName="gap-1">
@@ -451,11 +532,19 @@ export default function ReportsScreen() {
                     setMonth(idx + 1);
                     setShowMonthSelect(false);
                   }}
-                  className={`py-3 px-4 rounded-xl ${month === idx + 1 ? "bg-primary/5" : ""}`}
+                  className={`py-3 px-4 rounded-xl ${
+                    month === idx + 1 ? (isDark ? "bg-slate-800" : "bg-primary/5") : ""
+                  }`}
                 >
                   <Text
                     className={`font-semibold ${
-                      month === idx + 1 ? "text-primary text-base" : "text-slate-700 text-sm"
+                      month === idx + 1
+                        ? isDark
+                          ? "text-[#B8CAD9] text-base"
+                          : "text-primary text-base"
+                        : isDark
+                          ? "text-slate-300 text-sm"
+                          : "text-slate-700 text-sm"
                     }`}
                   >
                     {mName}
@@ -472,10 +561,14 @@ export default function ReportsScreen() {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setShowYearSelect(false)}
-          className="flex-1 bg-black/40 justify-center items-center"
+          className={`flex-1 justify-center items-center ${isDark ? "bg-black/60" : "bg-black/40"}`}
         >
-          <View className="bg-white w-[80%] rounded-2xl p-4 gap-3">
-            <Text className="text-base font-bold text-slate-800 pb-2 border-b border-slate-100">
+          <View className={`w-[80%] rounded-2xl p-4 gap-3 border ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-150"
+          }`}>
+            <Text className={`text-base font-bold pb-2 border-b ${
+              isDark ? "text-slate-200 border-slate-800" : "text-slate-800 border-slate-100"
+            }`}>
               Select Year
             </Text>
             {years.map((y) => (
@@ -485,11 +578,19 @@ export default function ReportsScreen() {
                   setYear(y);
                   setShowYearSelect(false);
                 }}
-                className={`py-3 px-4 rounded-xl ${year === y ? "bg-primary/5" : ""}`}
+                className={`py-3 px-4 rounded-xl ${
+                  year === y ? (isDark ? "bg-slate-800" : "bg-primary/5") : ""
+                }`}
               >
                 <Text
                   className={`font-semibold ${
-                    year === y ? "text-primary text-base" : "text-slate-700 text-sm"
+                    year === y
+                      ? isDark
+                        ? "text-[#B8CAD9] text-base"
+                        : "text-primary text-base"
+                      : isDark
+                        ? "text-slate-300 text-sm"
+                        : "text-slate-700 text-sm"
                   }`}
                 >
                   {y}
@@ -505,10 +606,14 @@ export default function ReportsScreen() {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setShowProjectSelect(false)}
-          className="flex-1 bg-black/40 justify-center items-center"
+          className={`flex-1 justify-center items-center ${isDark ? "bg-black/60" : "bg-black/40"}`}
         >
-          <View className="bg-white w-[85%] rounded-2xl p-4 gap-3 max-h-[70%]">
-            <Text className="text-base font-bold text-slate-800 pb-2 border-b border-slate-100">
+          <View className={`w-[85%] rounded-2xl p-4 gap-3 max-h-[70%] border ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-150"
+          }`}>
+            <Text className={`text-base font-bold pb-2 border-b ${
+              isDark ? "text-slate-200 border-slate-800" : "text-slate-800 border-slate-100"
+            }`}>
               Select Project Filter
             </Text>
             <ScrollView contentContainerClassName="gap-1">
@@ -517,11 +622,19 @@ export default function ReportsScreen() {
                   setProjectId("all");
                   setShowProjectSelect(false);
                 }}
-                className={`py-3 px-4 rounded-xl ${projectId === "all" ? "bg-primary/5" : ""}`}
+                className={`py-3 px-4 rounded-xl ${
+                  projectId === "all" ? (isDark ? "bg-slate-800" : "bg-primary/5") : ""
+                }`}
               >
                 <Text
                   className={`font-semibold ${
-                    projectId === "all" ? "text-primary text-base" : "text-slate-700 text-sm"
+                    projectId === "all"
+                      ? isDark
+                        ? "text-[#B8CAD9] text-base"
+                        : "text-primary text-base"
+                      : isDark
+                        ? "text-slate-300 text-sm"
+                        : "text-slate-700 text-sm"
                   }`}
                 >
                   All Projects
@@ -534,11 +647,19 @@ export default function ReportsScreen() {
                     setProjectId(p.id);
                     setShowProjectSelect(false);
                   }}
-                  className={`py-3 px-4 rounded-xl ${projectId === p.id ? "bg-primary/5" : ""}`}
+                  className={`py-3 px-4 rounded-xl ${
+                    projectId === p.id ? (isDark ? "bg-slate-800" : "bg-primary/5") : ""
+                  }`}
                 >
                   <Text
                     className={`font-semibold ${
-                      projectId === p.id ? "text-primary text-base" : "text-slate-700 text-sm"
+                      projectId === p.id
+                        ? isDark
+                          ? "text-[#B8CAD9] text-base"
+                          : "text-primary text-base"
+                        : isDark
+                          ? "text-slate-300 text-sm"
+                          : "text-slate-700 text-sm"
                     }`}
                   >
                     {p.name}
@@ -555,10 +676,14 @@ export default function ReportsScreen() {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setShowWorkerSelect(false)}
-          className="flex-1 bg-black/40 justify-center items-center"
+          className={`flex-1 justify-center items-center ${isDark ? "bg-black/60" : "bg-black/40"}`}
         >
-          <View className="bg-white w-[85%] rounded-2xl p-4 gap-3 max-h-[70%]">
-            <Text className="text-base font-bold text-slate-800 pb-2 border-b border-slate-100">
+          <View className={`w-[85%] rounded-2xl p-4 gap-3 max-h-[70%] border ${
+            isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-slate-150"
+          }`}>
+            <Text className={`text-base font-bold pb-2 border-b ${
+              isDark ? "text-slate-200 border-slate-800" : "text-slate-800 border-slate-100"
+            }`}>
               Select Worker Filter
             </Text>
             <ScrollView contentContainerClassName="gap-1">
@@ -567,11 +692,19 @@ export default function ReportsScreen() {
                   setWorkerId("all");
                   setShowWorkerSelect(false);
                 }}
-                className={`py-3 px-4 rounded-xl ${workerId === "all" ? "bg-primary/5" : ""}`}
+                className={`py-3 px-4 rounded-xl ${
+                  workerId === "all" ? (isDark ? "bg-slate-800" : "bg-primary/5") : ""
+                }`}
               >
                 <Text
                   className={`font-semibold ${
-                    workerId === "all" ? "text-primary text-base" : "text-slate-700 text-sm"
+                    workerId === "all"
+                      ? isDark
+                        ? "text-[#B8CAD9] text-base"
+                        : "text-primary text-base"
+                      : isDark
+                        ? "text-slate-300 text-sm"
+                        : "text-slate-700 text-sm"
                   }`}
                 >
                   All Workers
@@ -584,11 +717,19 @@ export default function ReportsScreen() {
                     setWorkerId(w.id);
                     setShowWorkerSelect(false);
                   }}
-                  className={`py-3 px-4 rounded-xl ${workerId === w.id ? "bg-primary/5" : ""}`}
+                  className={`py-3 px-4 rounded-xl ${
+                    workerId === w.id ? (isDark ? "bg-slate-800" : "bg-primary/5") : ""
+                  }`}
                 >
                   <Text
                     className={`font-semibold ${
-                      workerId === w.id ? "text-primary text-base" : "text-slate-700 text-sm"
+                      workerId === w.id
+                        ? isDark
+                          ? "text-[#B8CAD9] text-base"
+                          : "text-primary text-base"
+                        : isDark
+                          ? "text-slate-300 text-sm"
+                          : "text-slate-700 text-sm"
                     }`}
                   >
                     {w.full_name}
@@ -602,3 +743,4 @@ export default function ReportsScreen() {
     </SafeAreaView>
   );
 }
+

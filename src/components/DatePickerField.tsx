@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Modal, Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Calendar } from "lucide-react-native";
+import { useIsDark } from "@/hooks/use-is-dark";
 
 interface DatePickerFieldProps {
   value: string;
@@ -11,6 +12,7 @@ interface DatePickerFieldProps {
 
 export function DatePickerField({ value, onChange, label }: DatePickerFieldProps) {
   const [show, setShow] = useState(false);
+  const isDark = useIsDark();
 
   const dateValue = value ? new Date(value + "T00:00:00") : new Date();
 
@@ -33,15 +35,21 @@ export function DatePickerField({ value, onChange, label }: DatePickerFieldProps
 
   return (
     <View className="gap-1.5 flex-1">
-      {label && <Text className="text-sm font-medium text-slate-700">{label}</Text>}
+      {label && (
+        <Text className={`text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+          {label}
+        </Text>
+      )}
       <TouchableOpacity
         onPress={() => setShow(true)}
-        className="h-11 px-3 border border-slate-200 rounded-xl bg-white flex-row items-center justify-between"
+        className={`h-11 px-3 border rounded-[14px] flex-row items-center justify-between ${
+          isDark ? "bg-[#1E293B] border-slate-700" : "bg-white border-slate-200"
+        }`}
       >
-        <Text className="text-base text-slate-800">
+        <Text className={`text-base ${isDark ? "text-slate-200" : "text-slate-800"}`}>
           {value || "Select Date"}
         </Text>
-        <Calendar size={16} color="#94A3B8" />
+        <Calendar size={16} color={isDark ? "#B8CAD9" : "#94A3B8"} />
       </TouchableOpacity>
 
       {show && Platform.OS === "android" && (
@@ -58,12 +66,21 @@ export function DatePickerField({ value, onChange, label }: DatePickerFieldProps
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => setShow(false)}
-            className="flex-1 bg-black/40 justify-end"
+            className={`flex-1 justify-end ${isDark ? "bg-black/60" : "bg-black/40"}`}
           >
-            <View className="bg-white p-4 pb-8 rounded-t-3xl border-t border-border">
-              <View className="flex-row justify-between items-center mb-4 pb-2 border-b border-slate-100">
-                <Text className="text-base font-bold text-slate-800">Select Date</Text>
-                <TouchableOpacity onPress={() => setShow(false)} className="px-4 py-1.5 bg-primary rounded-xl">
+            <View className={`p-4 pb-8 rounded-t-3xl border-t ${
+              isDark ? "bg-[#1E293B] border-slate-800" : "bg-white border-border"
+            }`}>
+              <View className={`flex-row justify-between items-center mb-4 pb-2 border-b ${
+                isDark ? "border-slate-800" : "border-slate-100"
+              }`}>
+                <Text className={`text-base font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
+                  Select Date
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShow(false)}
+                  className={`px-4 py-1.5 rounded-[14px] ${isDark ? "bg-slate-700" : "bg-[#173B6C]"}`}
+                >
                   <Text className="text-sm font-semibold text-white">Done</Text>
                 </TouchableOpacity>
               </View>
@@ -71,7 +88,7 @@ export function DatePickerField({ value, onChange, label }: DatePickerFieldProps
                 value={dateValue}
                 mode="date"
                 display="spinner"
-                textColor="#000000"
+                textColor={isDark ? "#FFFFFF" : "#000000"}
                 onChange={handleOnChange}
               />
             </View>
@@ -81,3 +98,4 @@ export function DatePickerField({ value, onChange, label }: DatePickerFieldProps
     </View>
   );
 }
+
