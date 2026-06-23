@@ -32,6 +32,8 @@ import { deleteWorker, updateWorker, type WorkerInput } from "@/lib/workers.func
 import { listPayments, recordPayment } from "@/lib/payments.functions";
 import { formatCurrency, toLocalISODate } from "@/lib/format";
 import { handleApiError } from "@/lib/errors";
+import { DatePickerField } from "@/components/DatePickerField";
+import { Toast } from "@/components/Toast";
 
 
 type WorkerStatus = "active" | "inactive";
@@ -73,6 +75,48 @@ export default function WorkerDetailScreen() {
   const [showMonthSelect, setShowMonthSelect] = useState(false);
   const [showYearSelect, setShowYearSelect] = useState(false);
 
+  // Validation & Toasts
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const validateField = (fieldName: string, value: string) => {
+    let err = "";
+    if (fieldName === "fullName") {
+      if (!value.trim()) {
+        err = "This field is required.";
+      }
+    } else if (fieldName === "mobile") {
+      if (value.trim() && value.length !== 10) {
+        err = "Phone number must contain exactly 10 digits.";
+      }
+    } else if (fieldName === "dailyWage") {
+      const wageNum = Number(value);
+      if (value.trim() === "") {
+        err = "This field is required.";
+      } else if (isNaN(wageNum) || wageNum <= 0) {
+        err = "Please enter a valid amount greater than ₹0.";
+      }
+    } else if (fieldName === "amount") {
+      const amtNum = Number(value);
+      if (value.trim() === "") {
+        err = "This field is required.";
+      } else if (isNaN(amtNum) || amtNum <= 0) {
+        err = "Please enter a valid amount greater than ₹0.";
+      }
+    }
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (err) {
+        next[fieldName] = err;
+      } else {
+        delete next[fieldName];
+      }
+      return next;
+    });
+    return err === "";
+  };
+
   // Queries
   const { data: stats, isLoading: loadingStats, refetch: refetchStats } = useQuery({
     queryKey: ["worker-stats", id, year, month],
@@ -100,7 +144,8 @@ export default function WorkerDetailScreen() {
       qc.invalidateQueries({ queryKey: ["payments", id] });
       qc.invalidateQueries({ queryKey: ["worker-stats", id] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
-      Alert.alert("Success", "Payment recorded successfully");
+      setToastMessage("Payment recorded successfully");
+      setToastVisible(true);
       setShowPaymentModal(false);
       setAmount("");
       setNote("");
@@ -115,7 +160,6 @@ export default function WorkerDetailScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workers"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
-      Alert.alert("Success", "Worker deleted");
       router.back();
     },
     onError: (error: any) => {
@@ -129,7 +173,8 @@ export default function WorkerDetailScreen() {
       qc.invalidateQueries({ queryKey: ["workers"] });
       qc.invalidateQueries({ queryKey: ["worker-stats", id] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
-      Alert.alert("Success", "Worker profile updated");
+      setToastMessage("Worker updated successfully");
+      setToastVisible(true);
       setShowEditModal(false);
     },
     onError: (error: any) => {
@@ -167,8 +212,8 @@ export default function WorkerDetailScreen() {
 
   function handleDelete() {
     Alert.alert(
-      "Confirm Delete",
-      `Are you sure you want to delete worker ${w.full_name}? This cannot be undone.`,
+      `Delete ${w.full_name}?`,
+      "This action cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: () => deleteMutation.mutate() }
@@ -184,20 +229,20 @@ export default function WorkerDetailScreen() {
     setJoiningDate(w.joining_date);
     setAddress(w.address ?? "");
     setStatus(w.status);
+    setErrors({});
     setShowEditModal(true);
   }
 
   function handleSaveEdit() {
-    if (!fullName.trim()) {
-      Alert.alert("Error", "Name is required");
-      return;
-    }
-    const wageNum = Number(dailyWage);
-    if (isNaN(wageNum) || wageNum < 0) {
-      Alert.alert("Error", "Daily wage must be a positive number");
+    const isNameValid = validateField("fullName", fullName);
+    const isMobileValid = validateField("mobile", mobile);
+    const isWageValid = validateField("dailyWage", dailyWage);
+
+    if (!isNameValid || !isMobileValid || !isWageValid) {
       return;
     }
 
+    const wageNum = Number(dailyWage);
     editMutation.mutate({
       id: id!,
       full_name: fullName.trim(),
@@ -211,12 +256,13 @@ export default function WorkerDetailScreen() {
   }
 
   function handleRecordPayment() {
-    const amtNum = Number(amount);
-    if (isNaN(amtNum) || amtNum <= 0) {
-      Alert.alert("Error", "Please enter a valid amount");
+    const isAmountValid = validateField("amount", amount);
+
+    if (!isAmountValid) {
       return;
     }
 
+    const amtNum = Number(amount);
     recordPaymentMutation.mutate({
       worker_id: id!,
       amount: amtNum,
@@ -576,24 +622,24 @@ export default function WorkerDetailScreen() {
                 <Text className="text-sm font-medium text-slate-700">Amount Paid (₹)</Text>
                 <TextInput
                   value={amount}
-                  onChangeText={setAmount}
+                  onChangeText={(val) => {
+                    const cleaned = val.replace(/[^0-9]/g, "");
+                    setAmount(cleaned);
+                    validateField("amount", cleaned);
+                  }}
                   placeholder="Enter amount"
                   placeholderTextColor="#94A3B8"
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
                   className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                 />
+                {errors.amount && <Text className="text-xs text-red-500">{errors.amount}</Text>}
               </View>
 
-              <View className="gap-1.5">
-                <Text className="text-sm font-medium text-slate-700">Date Paid</Text>
-                <TextInput
-                  value={paidOn}
-                  onChangeText={setPaidOn}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#94A3B8"
-                  className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
-                />
-              </View>
+              <DatePickerField
+                value={paidOn}
+                onChange={(d) => setPaidOn(d)}
+                label="Date Paid"
+              />
 
               <View className="gap-1.5">
                 <Text className="text-sm font-medium text-slate-700">Note / Details</Text>
@@ -623,7 +669,10 @@ export default function WorkerDetailScreen() {
                 }`}
               >
                 {recordPaymentMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <View className="flex-row items-center gap-2">
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text className="text-base font-semibold text-white">Recording...</Text>
+                  </View>
                 ) : (
                   <Text className="text-base font-semibold text-white">Record Payment</Text>
                 )}
@@ -671,11 +720,15 @@ export default function WorkerDetailScreen() {
                 <Text className="text-sm font-medium text-slate-700">Full Name</Text>
                 <TextInput
                   value={fullName}
-                  onChangeText={setFullName}
+                  onChangeText={(val) => {
+                    setFullName(val);
+                    validateField("fullName", val);
+                  }}
                   placeholder="Full name"
                   placeholderTextColor="#94A3B8"
                   className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                 />
+                {errors.fullName && <Text className="text-xs text-red-500">{errors.fullName}</Text>}
               </View>
 
               <View className="flex-row gap-3">
@@ -683,12 +736,17 @@ export default function WorkerDetailScreen() {
                   <Text className="text-sm font-medium text-slate-700">Mobile</Text>
                   <TextInput
                     value={mobile}
-                    onChangeText={setMobile}
-                    placeholder="Mobile number"
+                    onChangeText={(val) => {
+                      const cleaned = val.replace(/\D/g, "").slice(0, 10);
+                      setMobile(cleaned);
+                      validateField("mobile", cleaned);
+                    }}
+                    placeholder="9999999999"
                     placeholderTextColor="#94A3B8"
-                    keyboardType="phone-pad"
+                    keyboardType="number-pad"
                     className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                   />
+                  {errors.mobile && <Text className="text-xs text-red-500">{errors.mobile}</Text>}
                 </View>
                 <View className="flex-1 gap-1.5">
                   <Text className="text-sm font-medium text-slate-700">Type / Skill</Text>
@@ -707,23 +765,23 @@ export default function WorkerDetailScreen() {
                   <Text className="text-sm font-medium text-slate-700">Daily Wage (₹)</Text>
                   <TextInput
                     value={dailyWage}
-                    onChangeText={setDailyWage}
+                    onChangeText={(val) => {
+                      const cleaned = val.replace(/[^0-9]/g, "");
+                      setDailyWage(cleaned);
+                      validateField("dailyWage", cleaned);
+                    }}
                     placeholder="500"
                     placeholderTextColor="#94A3B8"
-                    keyboardType="numeric"
+                    keyboardType="number-pad"
                     className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                   />
+                  {errors.dailyWage && <Text className="text-xs text-red-500">{errors.dailyWage}</Text>}
                 </View>
-                <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Joining Date</Text>
-                  <TextInput
-                    value={joiningDate}
-                    onChangeText={setJoiningDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#94A3B8"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
-                  />
-                </View>
+                <DatePickerField
+                  value={joiningDate}
+                  onChange={(d) => setJoiningDate(d)}
+                  label="Joining Date"
+                />
               </View>
 
               <View className="gap-1.5">
@@ -790,7 +848,10 @@ export default function WorkerDetailScreen() {
                 }`}
               >
                 {editMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <View className="flex-row items-center gap-2">
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text className="text-base font-semibold text-white">Saving...</Text>
+                  </View>
                 ) : (
                   <Text className="text-base font-semibold text-white">Save Changes</Text>
                 )}
@@ -799,6 +860,7 @@ export default function WorkerDetailScreen() {
           </View>
         </View>
       </Modal>
+      <Toast visible={toastVisible} message={toastMessage} onHide={() => setToastVisible(false)} />
     </SafeAreaView>
   );
 }

@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { DatePickerField } from "@/components/DatePickerField";
+import { Toast } from "@/components/Toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
@@ -65,6 +67,36 @@ export default function ProjectsScreen() {
   const debouncedSearch = useDebounce(search, 300);
   const [filterTab, setFilterTab] = useState<"all" | "active" | "planning" | "on_hold" | "completed">("all");
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const validateField = (fieldName: string, value: string) => {
+    let err = "";
+    if (fieldName === "name") {
+      if (!value.trim()) {
+        err = "This field is required.";
+      }
+    } else if (fieldName === "contractValue") {
+      const valNum = Number(value);
+      if (value.trim() === "") {
+        err = "This field is required.";
+      } else if (isNaN(valNum) || valNum <= 0) {
+        err = "Please enter a valid amount greater than ₹0.";
+      }
+    }
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (err) {
+        next[fieldName] = err;
+      } else {
+        delete next[fieldName];
+      }
+      return next;
+    });
+    return err === "";
+  };
+
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -90,7 +122,8 @@ export default function ProjectsScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["projects"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
-      Alert.alert("Success", "Project created successfully");
+      setToastMessage("Project created successfully");
+      setToastVisible(true);
       closeModal();
     },
     onError: (error: any) => {
@@ -106,6 +139,7 @@ export default function ProjectsScreen() {
     setExpectedEnd("");
     setContractValue("0");
     setStatus("planning");
+    setErrors({});
     setShowAddModal(true);
   }
 
@@ -114,16 +148,14 @@ export default function ProjectsScreen() {
   }
 
   function handleSave() {
-    if (!name.trim()) {
-      Alert.alert("Error", "Project name is required");
-      return;
-    }
-    const valNum = Number(contractValue);
-    if (isNaN(valNum) || valNum < 0) {
-      Alert.alert("Error", "Please enter a valid contract value");
+    const isNameValid = validateField("name", name);
+    const isContractValid = validateField("contractValue", contractValue);
+
+    if (!isNameValid || !isContractValid) {
       return;
     }
 
+    const valNum = Number(contractValue);
     createMutation.mutate({
       name: name.trim(),
       client: client.trim() || null,
@@ -340,11 +372,15 @@ export default function ProjectsScreen() {
                 <Text className="text-sm font-medium text-slate-700">Project / Site Name</Text>
                 <TextInput
                   value={name}
-                  onChangeText={setName}
+                  onChangeText={(val) => {
+                    setName(val);
+                    validateField("name", val);
+                  }}
                   placeholder="e.g. Royal Heights Block A"
                   placeholderTextColor="#94A3B8"
                   className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                 />
+                {errors.name && <Text className="text-xs text-red-500">{errors.name}</Text>}
               </View>
 
               {/* Client & Location */}
@@ -373,26 +409,16 @@ export default function ProjectsScreen() {
 
               {/* Start Date & Expected End */}
               <View className="flex-row gap-3">
-                <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Start Date</Text>
-                  <TextInput
-                    value={startDate}
-                    onChangeText={setStartDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#94A3B8"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
-                  />
-                </View>
-                <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Expected End</Text>
-                  <TextInput
-                    value={expectedEnd}
-                    onChangeText={setExpectedEnd}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#94A3B8"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
-                  />
-                </View>
+                <DatePickerField
+                  value={startDate}
+                  onChange={(d) => setStartDate(d)}
+                  label="Start Date"
+                />
+                <DatePickerField
+                  value={expectedEnd}
+                  onChange={(d) => setExpectedEnd(d)}
+                  label="Expected End"
+                />
               </View>
 
               {/* Contract Value & Status */}
@@ -401,12 +427,17 @@ export default function ProjectsScreen() {
                   <Text className="text-sm font-medium text-slate-700">Contract Value (₹)</Text>
                   <TextInput
                     value={contractValue}
-                    onChangeText={setContractValue}
+                    onChangeText={(val) => {
+                      const cleaned = val.replace(/[^0-9]/g, "");
+                      setContractValue(cleaned);
+                      validateField("contractValue", cleaned);
+                    }}
                     placeholder="e.g. 500000"
                     placeholderTextColor="#94A3B8"
-                    keyboardType="numeric"
+                    keyboardType="number-pad"
                     className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                   />
+                  {errors.contractValue && <Text className="text-xs text-red-500">{errors.contractValue}</Text>}
                 </View>
                 <View className="flex-1 gap-1.5">
                   <Text className="text-sm font-medium text-slate-700">Status</Text>
@@ -461,13 +492,14 @@ export default function ProjectsScreen() {
                 {createMutation.isPending ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text className="text-base font-semibold text-white">Create Project</Text>
+                  <Text className="text-base font-semibold text-white">Creating...</Text>
                 )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+      <Toast visible={toastVisible} message={toastMessage} onHide={() => setToastVisible(false)} />
     </SafeAreaView>
   );
 }

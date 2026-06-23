@@ -12,6 +12,8 @@ import {
   Linking,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { DatePickerField } from "@/components/DatePickerField";
+import { Toast } from "@/components/Toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
@@ -55,6 +57,40 @@ export default function WorkersScreen() {
   const debouncedSearch = useDebounce(search, 300);
   const [filterTab, setFilterTab] = useState<"all" | "available" | "assigned" | "inactive">("all");
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const validateField = (fieldName: string, value: string) => {
+    let err = "";
+    if (fieldName === "fullName") {
+      if (!value.trim()) {
+        err = "This field is required.";
+      }
+    } else if (fieldName === "mobile") {
+      if (value.trim() && value.length !== 10) {
+        err = "Phone number must contain exactly 10 digits.";
+      }
+    } else if (fieldName === "dailyWage") {
+      const wageNum = Number(value);
+      if (value.trim() === "") {
+        err = "This field is required.";
+      } else if (isNaN(wageNum) || wageNum <= 0) {
+        err = "Please enter a valid amount greater than ₹0.";
+      }
+    }
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (err) {
+        next[fieldName] = err;
+      } else {
+        delete next[fieldName];
+      }
+      return next;
+    });
+    return err === "";
+  };
+
   // Modal states
   const [modalMode, setModalMode] = useState<"add" | "edit" | null>(null);
   const [selectedWorker, setSelectedWorker] = useState<WorkerStats | null>(null);
@@ -79,7 +115,8 @@ export default function WorkersScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workers"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
-      Alert.alert("Success", "Worker added successfully");
+      setToastMessage("Worker added successfully");
+      setToastVisible(true);
       closeModal();
     },
     onError: (error: any) => {
@@ -93,7 +130,8 @@ export default function WorkersScreen() {
       qc.invalidateQueries({ queryKey: ["workers"] });
       qc.invalidateQueries({ queryKey: ["worker-stats"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
-      Alert.alert("Success", "Worker updated successfully");
+      setToastMessage("Worker updated successfully");
+      setToastVisible(true);
       closeModal();
     },
     onError: (error: any) => {
@@ -109,6 +147,7 @@ export default function WorkersScreen() {
     setJoiningDate(toLocalISODate(new Date()));
     setAddress("");
     setStatus("active");
+    setErrors({});
     setModalMode("add");
   }
 
@@ -121,6 +160,7 @@ export default function WorkersScreen() {
     setJoiningDate(worker.joining_date);
     setAddress(worker.address ?? "");
     setStatus(worker.status);
+    setErrors({});
     setModalMode("edit");
   }
 
@@ -130,16 +170,15 @@ export default function WorkersScreen() {
   }
 
   function handleSave() {
-    if (!fullName.trim()) {
-      Alert.alert("Error", "Name is required");
-      return;
-    }
-    const wageNum = Number(dailyWage);
-    if (isNaN(wageNum) || wageNum < 0) {
-      Alert.alert("Error", "Please enter a valid daily wage");
+    const isNameValid = validateField("fullName", fullName);
+    const isMobileValid = validateField("mobile", mobile);
+    const isWageValid = validateField("dailyWage", dailyWage);
+
+    if (!isNameValid || !isMobileValid || !isWageValid) {
       return;
     }
 
+    const wageNum = Number(dailyWage);
     const payload = {
       full_name: fullName.trim(),
       mobile: mobile.trim() || null,
@@ -406,11 +445,15 @@ export default function WorkersScreen() {
                 <Text className="text-sm font-medium text-slate-700">Full Name</Text>
                 <TextInput
                   value={fullName}
-                  onChangeText={setFullName}
+                  onChangeText={(val) => {
+                    setFullName(val);
+                    validateField("fullName", val);
+                  }}
                   placeholder="John Doe"
                   placeholderTextColor="#94A3B8"
                   className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                 />
+                {errors.fullName && <Text className="text-xs text-red-500">{errors.fullName}</Text>}
               </View>
 
               {/* Mobile & Type */}
@@ -419,12 +462,17 @@ export default function WorkersScreen() {
                   <Text className="text-sm font-medium text-slate-700">Mobile</Text>
                   <TextInput
                     value={mobile}
-                    onChangeText={setMobile}
+                    onChangeText={(val) => {
+                      const cleaned = val.replace(/\D/g, "").slice(0, 10);
+                      setMobile(cleaned);
+                      validateField("mobile", cleaned);
+                    }}
                     placeholder="9999999999"
                     placeholderTextColor="#94A3B8"
-                    keyboardType="phone-pad"
+                    keyboardType="number-pad"
                     className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                   />
+                  {errors.mobile && <Text className="text-xs text-red-500">{errors.mobile}</Text>}
                 </View>
                 <View className="flex-1 gap-1.5">
                   <Text className="text-sm font-medium text-slate-700">Type / Skill</Text>
@@ -444,23 +492,23 @@ export default function WorkersScreen() {
                   <Text className="text-sm font-medium text-slate-700">Daily Wage (₹)</Text>
                   <TextInput
                     value={dailyWage}
-                    onChangeText={setDailyWage}
+                    onChangeText={(val) => {
+                      const cleaned = val.replace(/[^0-9]/g, "");
+                      setDailyWage(cleaned);
+                      validateField("dailyWage", cleaned);
+                    }}
                     placeholder="500"
                     placeholderTextColor="#94A3B8"
-                    keyboardType="numeric"
+                    keyboardType="number-pad"
                     className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                   />
+                  {errors.dailyWage && <Text className="text-xs text-red-500">{errors.dailyWage}</Text>}
                 </View>
-                <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Joining Date</Text>
-                  <TextInput
-                    value={joiningDate}
-                    onChangeText={setJoiningDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#94A3B8"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
-                  />
-                </View>
+                <DatePickerField
+                  value={joiningDate}
+                  onChange={(d) => setJoiningDate(d)}
+                  label="Joining Date"
+                />
               </View>
 
               {/* Address */}
@@ -532,7 +580,7 @@ export default function WorkersScreen() {
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <Text className="text-base font-semibold text-white">
-                    {modalMode === "add" ? "Add Worker" : "Save Changes"}
+                    {modalMode === "add" ? "Creating..." : "Saving..."}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -540,6 +588,7 @@ export default function WorkersScreen() {
           </View>
         </View>
       </Modal>
+      <Toast visible={toastVisible} message={toastMessage} onHide={() => setToastVisible(false)} />
     </SafeAreaView>
   );
 }

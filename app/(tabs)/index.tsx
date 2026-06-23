@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
+import { useSession } from "@/hooks/use-session";
 import { useRouter } from "expo-router";
 import {
   HardHat,
@@ -34,6 +35,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { user } = useSession();
   const [refreshing, setRefreshing] = useState(false);
   const [isAboutVisible, setIsAboutVisible] = useState(false);
 
@@ -65,23 +67,71 @@ export default function DashboardScreen() {
 
   const isLoading = loadingK || loadingAct;
 
+  function getGreeting(name?: string | null) {
+    const hour = new Date().getHours();
+    let greetingWord = "";
+    let emoji = "👋";
+
+    if (hour >= 5 && hour < 12) {
+      greetingWord = "Good Morning";
+      emoji = "👋";
+    } else if (hour >= 12 && hour < 17) {
+      greetingWord = "Good Afternoon";
+      emoji = "☀️";
+    } else if (hour >= 17 && hour < 22) {
+      greetingWord = "Good Evening";
+      emoji = "🌙";
+    } else {
+      greetingWord = "Hello";
+      emoji = "👋";
+    }
+
+    if (name) {
+      const formattedName = name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      return `${greetingWord}, ${formattedName} ${emoji}`;
+    } else {
+      return `Hello 👋`;
+    }
+  }
+
+  function getFormattedDate() {
+    try {
+      return new Date().toLocaleDateString(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    } catch {
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const now = new Date();
+      return `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    }
+  }
+
   return (
-    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["left", "right"]} className="flex-1 bg-slate-50">
       <ScrollView
         contentContainerClassName="px-4 py-6 pb-32"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E3A5F"]} />
         }
       >
-        {/* Header */}
-        <View className="mb-6 flex-row justify-between items-center">
-          <View>
-            <Text className="text-2xl font-bold text-foreground">Overview</Text>
-            <Text className="text-xs text-muted-foreground mt-0.5">
-              Contractor Operations Dashboard
+        {/* Personalized Greeting Header */}
+        <View className="mb-4 pb-4 border-b border-slate-100 flex-row justify-between items-start">
+          <View className="flex-1 pr-4">
+            <Text className="text-xl font-bold text-slate-800">
+              {getGreeting(user?.user_metadata?.full_name || user?.user_metadata?.display_name || user?.user_metadata?.name)}
+            </Text>
+            <Text className="text-xs text-muted-foreground mt-1">
+              {getFormattedDate()}
             </Text>
           </View>
-          <View className="flex-row items-center gap-3">
+          <View className="flex-row items-center gap-2">
             {isLoading && !refreshing && (
               <ActivityIndicator size="small" color="#1E3A5F" />
             )}
@@ -89,9 +139,17 @@ export default function DashboardScreen() {
               onPress={() => setIsAboutVisible(true)}
               className="w-10 h-10 rounded-xl bg-white border border-border items-center justify-center shadow-xs active:bg-slate-50"
             >
-              <Info size={20} color="#1E3A5F" />
+              <Info size={18} color="#1E3A5F" />
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Overview Sub-Header */}
+        <View className="mb-5">
+          <Text className="text-2xl font-bold text-foreground">Overview</Text>
+          <Text className="text-xs text-muted-foreground mt-0.5">
+            Contractor Operations Dashboard
+          </Text>
         </View>
 
         {/* KPI Grid */}

@@ -12,6 +12,8 @@ import {
   Image,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { DatePickerField } from "@/components/DatePickerField";
+import { Toast } from "@/components/Toast";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -70,6 +72,40 @@ export default function ProjectDetailScreen() {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const validateField = (fieldName: string, value: string) => {
+    let err = "";
+    if (fieldName === "projectName") {
+      if (!value.trim()) {
+        err = "This field is required.";
+      }
+    } else if (fieldName === "contractValue") {
+      const valNum = Number(value);
+      if (value.trim() === "") {
+        err = "This field is required.";
+      } else if (isNaN(valNum) || valNum <= 0) {
+        err = "Please enter a valid amount greater than ₹0.";
+      }
+    } else if (fieldName === "updateNote") {
+      if (!value.trim()) {
+        err = "This field is required.";
+      }
+    }
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (err) {
+        next[fieldName] = err;
+      } else {
+        delete next[fieldName];
+      }
+      return next;
+    });
+    return err === "";
+  };
+
   // Modals state
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -127,7 +163,8 @@ export default function ProjectDetailScreen() {
       qc.invalidateQueries({ queryKey: ["project", id] });
       qc.invalidateQueries({ queryKey: ["projects"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
-      Alert.alert("Success", "Project updated successfully");
+      setToastMessage("Project updated successfully");
+      setToastVisible(true);
       setShowEditModal(false);
     },
     onError: (error: any) => handleApiError(error),
@@ -138,7 +175,6 @@ export default function ProjectDetailScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["projects"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
-      Alert.alert("Success", "Project deleted successfully");
       router.back();
     },
     onError: (error: any) => handleApiError(error),
@@ -151,7 +187,8 @@ export default function ProjectDetailScreen() {
       qc.invalidateQueries({ queryKey: ["project-stats", id] });
       qc.invalidateQueries({ queryKey: ["workers"] });
       qc.invalidateQueries({ queryKey: ["att-matrix"] });
-      Alert.alert("Success", "Worker assigned successfully");
+      setToastMessage("Worker assigned successfully");
+      setToastVisible(true);
     },
     onError: (error: any) => handleApiError(error),
   });
@@ -163,7 +200,8 @@ export default function ProjectDetailScreen() {
       qc.invalidateQueries({ queryKey: ["project-stats", id] });
       qc.invalidateQueries({ queryKey: ["workers"] });
       qc.invalidateQueries({ queryKey: ["att-matrix"] });
-      Alert.alert("Success", "Worker unassigned successfully");
+      setToastMessage("Worker unassigned successfully");
+      setToastVisible(true);
     },
     onError: (error: any) => handleApiError(error),
   });
@@ -190,7 +228,8 @@ export default function ProjectDetailScreen() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project", id] });
-      Alert.alert("Success", "Quotation uploaded successfully");
+      setToastMessage("Quotation uploaded successfully");
+      setToastVisible(true);
     },
     onError: (error: any) => handleApiError(error),
     onSettled: () => setUploadingQuotation(false),
@@ -200,27 +239,22 @@ export default function ProjectDetailScreen() {
     mutationFn: (quotationId: string) => deleteQuotation({ id: quotationId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project", id] });
-      Alert.alert("Success", "Quotation version deleted");
+      setToastMessage("Quotation deleted successfully");
+      setToastVisible(true);
     },
     onError: (error: any) => handleApiError(error),
   });
 
   const addUpdateMutation = useMutation({
-    mutationFn: async (payload: { note: string; is_milestone: boolean; photo_path: string | null }) => {
-      return addProjectUpdate({ project_id: id!, ...payload });
-    },
+    mutationFn: (data: { note: string; is_milestone: boolean; photo_path?: string | null }) =>
+      addProjectUpdate({ project_id: id!, ...data }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project", id] });
-      Alert.alert("Success", "Project update added");
-      setUpdateNote("");
-      setIsMilestone(false);
-      setSelectedPhotoUri(null);
-      setSelectedPhotoName(null);
-      setSelectedPhotoType(null);
+      setToastMessage("Update added successfully");
+      setToastVisible(true);
       setShowUpdateModal(false);
     },
     onError: (error: any) => handleApiError(error),
-    onSettled: () => setUploadingUpdatePhoto(false),
   });
 
   if (loadingDetail && !detail) {
@@ -248,29 +282,39 @@ export default function ProjectDetailScreen() {
   const currentQuote = detail.quotations.find((q) => q.is_current);
 
   function handleOpenEdit() {
+    if (!p) return;
     setProjectName(p.name);
     setClient(p.client ?? "");
     setLocation(p.location ?? "");
     setStartDate(p.start_date ?? "");
     setExpectedEnd(p.expected_end ?? "");
-    setContractValue(String(p.contract_value ?? 0));
+    setContractValue(String(p.contract_value));
     setStatus(p.status);
     setNotes(p.notes ?? "");
-    setProgressPct(p.progress_pct ?? 0);
+    setProgressPct(p.progress_pct);
+    setErrors({});
     setShowEditModal(true);
   }
 
+  function handleOpenUpdateModal() {
+    setUpdateNote("");
+    setIsMilestone(false);
+    setSelectedPhotoUri(null);
+    setSelectedPhotoName(null);
+    setSelectedPhotoType(null);
+    setErrors({});
+    setShowUpdateModal(true);
+  }
+
   function handleSaveEdit() {
-    if (!projectName.trim()) {
-      Alert.alert("Error", "Project name is required");
-      return;
-    }
-    const valNum = Number(contractValue);
-    if (isNaN(valNum) || valNum < 0) {
-      Alert.alert("Error", "Please enter a valid contract value");
+    const isNameValid = validateField("projectName", projectName);
+    const isContractValid = validateField("contractValue", contractValue);
+
+    if (!isNameValid || !isContractValid) {
       return;
     }
 
+    const valNum = Number(contractValue);
     updateMutation.mutate({
       id: id!,
       name: projectName.trim(),
@@ -287,8 +331,8 @@ export default function ProjectDetailScreen() {
 
   function handleDeleteProject() {
     Alert.alert(
-      "Confirm Delete",
-      `Are you sure you want to delete ${p.name}? This will delete all logs, assigned crew relationships, quotations, and update history.`,
+      `Delete ${p.name}?`,
+      "This action cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: () => deleteMutation.mutate() }
@@ -326,11 +370,15 @@ export default function ProjectDetailScreen() {
     }
   }
 
-  function handleDeleteQuotation(qId: string) {
-    Alert.alert("Confirm Delete", "Are you sure you want to delete this quotation version?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deleteQuotationMutation.mutate(qId) }
-    ]);
+  function handleDeleteQuotation(qId: string, qName: string) {
+    Alert.alert(
+      `Delete ${qName}?`,
+      "This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => deleteQuotationMutation.mutate(qId) }
+      ]
+    );
   }
 
   async function handlePickUpdatePhoto() {
@@ -358,8 +406,8 @@ export default function ProjectDetailScreen() {
   }
 
   async function handleSaveUpdate() {
-    if (!updateNote.trim()) {
-      Alert.alert("Error", "Please write an update note");
+    const isNoteValid = validateField("updateNote", updateNote);
+    if (!isNoteValid) {
       return;
     }
 
@@ -529,10 +577,14 @@ export default function ProjectDetailScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => {
-                      Alert.alert("Confirm Remove", `Remove ${a.workers?.full_name} from this project?`, [
-                        { text: "Cancel", style: "cancel" },
-                        { text: "Remove", style: "destructive", onPress: () => unassignMutation.mutate(a.worker_id) }
-                      ]);
+                      Alert.alert(
+                        `Remove ${a.workers?.full_name}?`,
+                        "This action cannot be undone.",
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          { text: "Remove", style: "destructive", onPress: () => unassignMutation.mutate(a.worker_id) }
+                        ]
+                      );
                     }}
                     className="px-3 py-1 rounded-lg border border-red-200 bg-red-50/50"
                   >
@@ -616,7 +668,7 @@ export default function ProjectDetailScreen() {
               Site Updates
             </Text>
             <TouchableOpacity
-              onPress={() => setShowUpdateModal(true)}
+              onPress={() => handleOpenUpdateModal()}
               className="bg-primary flex-row items-center gap-1 px-3 py-1.5 rounded-xl active:bg-primary-600"
             >
               <Plus size={12} color="#FFFFFF" />
@@ -664,11 +716,15 @@ export default function ProjectDetailScreen() {
                 <Text className="text-sm font-medium text-slate-700">Project Name</Text>
                 <TextInput
                   value={projectName}
-                  onChangeText={setProjectName}
+                  onChangeText={(val) => {
+                    setProjectName(val);
+                    validateField("projectName", val);
+                  }}
                   placeholder="Project name"
                   placeholderTextColor="#94A3B8"
                   className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                 />
+                {errors.projectName && <Text className="text-xs text-red-500">{errors.projectName}</Text>}
               </View>
 
               <View className="flex-row gap-3">
@@ -695,26 +751,16 @@ export default function ProjectDetailScreen() {
               </View>
 
               <View className="flex-row gap-3">
-                <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Start Date</Text>
-                  <TextInput
-                    value={startDate}
-                    onChangeText={setStartDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#94A3B8"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
-                  />
-                </View>
-                <View className="flex-1 gap-1.5">
-                  <Text className="text-sm font-medium text-slate-700">Expected End</Text>
-                  <TextInput
-                    value={expectedEnd}
-                    onChangeText={setExpectedEnd}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#94A3B8"
-                    className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
-                  />
-                </View>
+                <DatePickerField
+                  value={startDate}
+                  onChange={(d) => setStartDate(d)}
+                  label="Start Date"
+                />
+                <DatePickerField
+                  value={expectedEnd}
+                  onChange={(d) => setExpectedEnd(d)}
+                  label="Expected End"
+                />
               </View>
 
               <View className="flex-row gap-3">
@@ -722,12 +768,17 @@ export default function ProjectDetailScreen() {
                   <Text className="text-sm font-medium text-slate-700">Contract Value (₹)</Text>
                   <TextInput
                     value={contractValue}
-                    onChangeText={setContractValue}
+                    onChangeText={(val) => {
+                      const cleaned = val.replace(/[^0-9]/g, "");
+                      setContractValue(cleaned);
+                      validateField("contractValue", cleaned);
+                    }}
                     placeholder="Contract value"
                     placeholderTextColor="#94A3B8"
-                    keyboardType="numeric"
+                    keyboardType="number-pad"
                     className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800"
                   />
+                  {errors.contractValue && <Text className="text-xs text-red-500">{errors.contractValue}</Text>}
                 </View>
                 <View className="flex-1 gap-1.5">
                   <Text className="text-sm font-medium text-slate-700">Progress Pct (%)</Text>
@@ -797,7 +848,7 @@ export default function ProjectDetailScreen() {
                 {updateMutation.isPending ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text className="text-base font-semibold text-white">Save Changes</Text>
+                  <Text className="text-base font-semibold text-white">Saving...</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -893,7 +944,7 @@ export default function ProjectDetailScreen() {
                       <Text className="text-xs font-semibold text-primary">Open</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => handleDeleteQuotation(q.id)}
+                      onPress={() => handleDeleteQuotation(q.id, q.file_name)}
                       className="p-1.5 bg-red-50 border border-red-100 rounded-lg"
                     >
                       <Trash2 size={14} color="#EF4444" />
@@ -932,13 +983,17 @@ export default function ProjectDetailScreen() {
                 <Text className="text-sm font-medium text-slate-700">Update Description</Text>
                 <TextInput
                   value={updateNote}
-                  onChangeText={setUpdateNote}
+                  onChangeText={(val) => {
+                    setUpdateNote(val);
+                    validateField("updateNote", val);
+                  }}
                   placeholder="e.g. Plastering work started, Slab pouring completed..."
                   placeholderTextColor="#94A3B8"
                   multiline
                   numberOfLines={3}
                   className="px-3 py-2 border border-slate-200 rounded-xl bg-white text-base text-slate-800 min-h-[80px]"
                 />
+                {errors.updateNote && <Text className="text-xs text-red-500">{errors.updateNote}</Text>}
               </View>
 
               {/* Site Photo Selection */}
@@ -998,21 +1053,22 @@ export default function ProjectDetailScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSaveUpdate}
-                disabled={uploadingUpdatePhoto}
+                disabled={uploadingUpdatePhoto || addUpdateMutation.isPending}
                 className={`flex-1 h-12 rounded-xl bg-primary justify-center items-center active:bg-primary-600 ${
-                  uploadingUpdatePhoto ? "opacity-50" : ""
+                  (uploadingUpdatePhoto || addUpdateMutation.isPending) ? "opacity-50" : ""
                 }`}
               >
-                {uploadingUpdatePhoto ? (
+                {uploadingUpdatePhoto || addUpdateMutation.isPending ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text className="text-base font-semibold text-white">Save Update</Text>
+                  <Text className="text-base font-semibold text-white">Saving...</Text>
                 )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+      <Toast visible={toastVisible} message={toastMessage} onHide={() => setToastVisible(false)} />
     </SafeAreaView>
   );
 }

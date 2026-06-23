@@ -9,7 +9,10 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Platform,
+  Modal,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -135,6 +138,7 @@ function ProjectAttendance({
 }) {
   const qc = useQueryClient();
   const [date, setDate] = useState(() => toLocalISODate(new Date()));
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Fetch Project stats to display name
   const { data: projects = [] } = useQuery<ProjectStats[]>({
@@ -366,16 +370,15 @@ function ProjectAttendance({
                     <ChevronLeft size={16} color="#64748B" />
                   </TouchableOpacity>
 
-                  <View className="flex-1 flex-row items-center bg-slate-50 border border-slate-200 px-3 h-10 rounded-xl">
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(true)}
+                    className="flex-1 flex-row items-center bg-slate-50 border border-slate-200 px-3 h-10 rounded-xl"
+                  >
                     <Calendar size={14} color="#94A3B8" />
-                    <TextInput
-                      value={date}
-                      onChangeText={setDate}
-                      placeholder="YYYY-MM-DD"
-                      placeholderTextColor="#94A3B8"
-                      className="flex-1 ml-2 text-sm text-slate-800 font-semibold h-full"
-                    />
-                  </View>
+                    <Text className="flex-1 ml-2 text-sm text-slate-800 font-semibold">
+                      {date}
+                    </Text>
+                  </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={() => incrementDate(1)}
@@ -453,6 +456,57 @@ function ProjectAttendance({
             ) : null
           }
         />
+      )}
+      {showDatePicker && Platform.OS === "android" && (
+        <DateTimePicker
+          value={date ? new Date(date + "T00:00:00") : new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) {
+              setDate(
+                `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(
+                  selectedDate.getDate()
+                ).padStart(2, "0")}`
+              );
+            }
+          }}
+        />
+      )}
+
+      {showDatePicker && Platform.OS === "ios" && (
+        <Modal transparent visible={showDatePicker} animationType="fade">
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setShowDatePicker(false)}
+            className="flex-1 bg-black/40 justify-end"
+          >
+            <View className="bg-white p-4 pb-8 rounded-t-3xl border-t border-border">
+              <View className="flex-row justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                <Text className="text-base font-bold text-slate-800">Select Date</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(false)} className="px-4 py-1.5 bg-primary rounded-xl">
+                  <Text className="text-sm font-semibold text-white">Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={date ? new Date(date + "T00:00:00") : new Date()}
+                mode="date"
+                display="spinner"
+                textColor="#000000"
+                onChange={(event, selectedDate) => {
+                  if (selectedDate) {
+                    setDate(
+                      `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(
+                        selectedDate.getDate()
+                      ).padStart(2, "0")}`
+                    );
+                  }
+                }}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
       )}
     </SafeAreaView>
   );
