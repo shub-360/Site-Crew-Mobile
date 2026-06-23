@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,11 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   HardHat,
   Calendar as CalendarIcon,
@@ -37,12 +38,22 @@ const MONTHS = [
 
 export default function ReportsScreen() {
   const router = useRouter();
+  const qc = useQueryClient();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [projectId, setProjectId] = useState<string>("all");
   const [workerId, setWorkerId] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"summary" | "calendar" | "cost">("summary");
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Focus listener to automatically refresh report queries if cached data is stale
+  useFocusEffect(
+    useCallback(() => {
+      qc.refetchQueries({ queryKey: ["att-matrix"], type: "active", stale: true });
+      qc.refetchQueries({ queryKey: ["projects", "stats"], type: "active", stale: true });
+    }, [qc])
+  );
 
   // Selection Overlay states
   const [showMonthSelect, setShowMonthSelect] = useState(false);
@@ -79,6 +90,15 @@ export default function ReportsScreen() {
     queryFn: () => listProjectsWithStats(),
     staleTime: 1000 * 60 * 2, // 2 minutes stale time for cost stats
   });
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      refetchMatrix(),
+      refetchProjStats(),
+    ]);
+    setRefreshing(false);
+  }, [refetchMatrix, refetchProjStats]);
 
   // Excel Generation Mutation
   const generateMutation = useMutation({
@@ -132,7 +152,12 @@ export default function ReportsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
-      <ScrollView contentContainerClassName="px-4 py-5 gap-4">
+      <ScrollView
+        contentContainerClassName="px-4 py-5 gap-4"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E3A5F"]} />
+        }
+      >
         {/* Filters Card */}
         <View className="bg-white border border-border rounded-2xl p-4 shadow-xs gap-3">
           <View className="flex-row gap-3">

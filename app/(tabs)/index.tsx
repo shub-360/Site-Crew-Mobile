@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +26,7 @@ import {
   Trophy,
   AlertTriangle,
   ChevronRight,
+  Info,
 } from "lucide-react-native";
 import { getDashboardOverview } from "@/lib/stats.functions";
 import { getRecentActivity } from "@/lib/dashboard.functions";
@@ -32,6 +35,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 export default function DashboardScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [isAboutVisible, setIsAboutVisible] = useState(false);
 
   const {
     data: k,
@@ -77,9 +81,17 @@ export default function DashboardScreen() {
               Contractor Operations Dashboard
             </Text>
           </View>
-          {isLoading && !refreshing && (
-            <ActivityIndicator size="small" color="#1E3A5F" />
-          )}
+          <View className="flex-row items-center gap-3">
+            {isLoading && !refreshing && (
+              <ActivityIndicator size="small" color="#1E3A5F" />
+            )}
+            <TouchableOpacity
+              onPress={() => setIsAboutVisible(true)}
+              className="w-10 h-10 rounded-xl bg-white border border-border items-center justify-center shadow-xs active:bg-slate-50"
+            >
+              <Info size={20} color="#1E3A5F" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* KPI Grid */}
@@ -243,13 +255,12 @@ export default function DashboardScreen() {
             {(activity ?? []).map((a) => (
               <View key={a.id} className="flex-row gap-3 items-start">
                 <View
-                  className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${
-                    a.kind === "attendance"
-                      ? "bg-primary"
-                      : a.kind === "worker"
+                  className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${a.kind === "attendance"
+                    ? "bg-primary"
+                    : a.kind === "worker"
                       ? "bg-success"
                       : "bg-warning"
-                  }`}
+                    }`}
                 />
                 <View className="flex-1 min-w-0">
                   <Text className="text-sm text-slate-800 font-medium">
@@ -264,6 +275,49 @@ export default function DashboardScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* About Modal */}
+      <Modal
+        visible={isAboutVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsAboutVisible(false)}
+      >
+        <View className="flex-1 bg-black/60 justify-center items-center px-6">
+          <View className="bg-white rounded-3xl p-6 w-full max-w-sm border border-border shadow-2xl items-center">
+            {/* Logo */}
+            <Image
+              source={require("../../assets/images/icon.png")}
+              className="w-20 h-20 rounded-2xl mb-4 border border-slate-100"
+              resizeMode="contain"
+            />
+
+            {/* Title & Version */}
+            <Text className="text-xl font-bold text-slate-800">SiteCrew</Text>
+            <Text className="text-xs text-muted-foreground mt-1 mb-5">Version 1.0.0-beta.2</Text>
+
+            <View className="w-full h-[1px] bg-slate-100 mb-5" />
+
+            {/* Credits */}
+            <Text className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">
+              Built with passion by
+            </Text>
+            <Text className="text-sm font-bold text-slate-700 mb-1">Mitali Rawal</Text>
+            <Text className="text-sm font-bold text-slate-700 mb-1">Shubham sharma</Text>
+            <Text className="text-sm font-bold text-slate-700 mb-5">Moksh Rawal</Text>
+
+            <Text className="text-[10px] text-slate-400 font-medium">© 2026 SiteCrew</Text>
+
+            {/* Close Button */}
+            <TouchableOpacity
+              onPress={() => setIsAboutVisible(false)}
+              className="w-full bg-slate-900 py-3 rounded-xl items-center mt-6 active:bg-slate-850"
+            >
+              <Text className="text-sm font-bold text-white">Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -285,8 +339,8 @@ function KpiCard({
     tone === "success"
       ? "text-success"
       : tone === "warning"
-      ? "text-warning"
-      : "text-primary";
+        ? "text-warning"
+        : "text-primary";
 
   return (
     <View className={`bg-white p-4 rounded-2xl border border-border shadow-sm ${className}`}>
@@ -322,8 +376,8 @@ function InsightCard({
     tone === "success"
       ? "text-success"
       : tone === "warning"
-      ? "text-warning"
-      : "text-primary";
+        ? "text-warning"
+        : "text-primary";
 
   return (
     <View className={`bg-white p-3 rounded-xl border border-border shadow-sm ${className}`}>

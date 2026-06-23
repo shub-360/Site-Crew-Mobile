@@ -149,6 +149,7 @@ export default function ProjectDetailScreen() {
       qc.invalidateQueries({ queryKey: ["project", id] });
       qc.invalidateQueries({ queryKey: ["project-stats", id] });
       qc.invalidateQueries({ queryKey: ["workers"] });
+      qc.invalidateQueries({ queryKey: ["att-matrix"] });
       Alert.alert("Success", "Worker assigned successfully");
     },
     onError: (error: any) => handleApiError(error),
@@ -160,6 +161,7 @@ export default function ProjectDetailScreen() {
       qc.invalidateQueries({ queryKey: ["project", id] });
       qc.invalidateQueries({ queryKey: ["project-stats", id] });
       qc.invalidateQueries({ queryKey: ["workers"] });
+      qc.invalidateQueries({ queryKey: ["att-matrix"] });
       Alert.alert("Success", "Worker unassigned successfully");
     },
     onError: (error: any) => handleApiError(error),

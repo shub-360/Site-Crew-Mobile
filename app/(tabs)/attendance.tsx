@@ -221,6 +221,7 @@ function ProjectAttendance({
       qc.invalidateQueries({ queryKey: ["attendance", projectId, date] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["projects", "stats"] });
+      qc.invalidateQueries({ queryKey: ["att-matrix"] });
     },
   });
 
@@ -235,6 +236,7 @@ function ProjectAttendance({
       qc.invalidateQueries({ queryKey: ["attendance", projectId, date] });
       qc.invalidateQueries({ queryKey: ["projects", "stats"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["att-matrix"] });
       Alert.alert("Success", "Marked all active crew as Full Day");
     },
     onError: (error: any) => handleApiError(error),
@@ -246,6 +248,7 @@ function ProjectAttendance({
       qc.invalidateQueries({ queryKey: ["project-workers", projectId] });
       qc.invalidateQueries({ queryKey: ["workers"] });
       qc.invalidateQueries({ queryKey: ["projects", "stats"] });
+      qc.invalidateQueries({ queryKey: ["att-matrix"] });
       Alert.alert("Success", "Worker assigned to project");
     },
     onError: (error: any) => handleApiError(error),
@@ -340,6 +343,7 @@ function ProjectAttendance({
         <FlatList
           data={workers}
           keyExtractor={(w: any) => w.id}
+          extraData={byWorker}
           contentContainerClassName="px-4 py-5 pb-16"
           ListHeaderComponent={
             <View className="gap-4 mb-4">
