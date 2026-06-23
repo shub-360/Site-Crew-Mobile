@@ -2,7 +2,7 @@
   "expo": {
     "name": "SiteCrew Beta",
     "slug": "sitecrew",
-    "version": "v1.0.0-beta.3.1",
+    "version": "v1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sitecrew",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sitecrew.mobile",
-      "buildNumber": "3.1"
+      "buildNumber": "1.0.0"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.sitecrew.mobile",
-      "versionCode": 3
+      "versionCode": 4
     },
     "web": {
       "bundler": "metro",
