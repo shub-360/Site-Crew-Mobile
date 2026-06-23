@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -68,9 +68,9 @@ function ProjectPicker({ onPick }: { onPick: (id: string) => void }) {
   }, [projects]);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-slate-50">
       <ScrollView
-        contentContainerClassName="px-4 py-6 gap-4"
+        contentContainerClassName="px-4 py-6 pb-32 gap-4"
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={refetch} colors={["#1E3A5F"]} />
         }
@@ -326,7 +326,7 @@ function ProjectAttendance({
   const isLoading = loadingWorkers || loadingAttendance;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-slate-50">
       {/* Sub Header */}
       <View className="px-4 py-3 bg-white border-b border-slate-100 flex-row items-center gap-3">
         <TouchableOpacity onPress={onBack} className="p-1 rounded-full bg-slate-100">
@@ -344,7 +344,7 @@ function ProjectAttendance({
           data={workers}
           keyExtractor={(w: any) => w.id}
           extraData={byWorker}
-          contentContainerClassName="px-4 py-5 pb-16"
+          contentContainerClassName="px-4 py-5 pb-32"
           ListHeaderComponent={
             <View className="gap-4 mb-4">
               {/* Info Card with Date Navigation */}

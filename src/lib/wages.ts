@@ -5,8 +5,8 @@ export const ATTENDANCE_MULTIPLIER: Record<AttendanceType, number> = {
   absent: 0,
   half: 0.5,
   full: 1,
-  // Overtime = full day + extra 3h at standard hourly rate (3/9 = 0.333…)
-  overtime: 1 + 3 / 9,
+  // Overtime = 1.5x standard daily rate
+  overtime: 1.5,
 };
 
 export function wageFor(type: AttendanceType, dailyWage: number): number {

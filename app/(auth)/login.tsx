@@ -59,7 +59,8 @@ export default function LoginScreen() {
       className="flex-1 bg-white"
     >
       <ScrollView
-        contentContainerClassName="flex-1 justify-center px-6 py-12"
+        contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+        className="px-6 py-12"
         keyboardShouldPersistTaps="handled"
       >
         {/* Branding */}

@@ -11,7 +11,7 @@ import {
   TextInput,
   Image,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -67,6 +67,7 @@ const STATUS_LABEL: Record<ProjectStatus, string> = {
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
 
   // Modals state
@@ -638,7 +639,10 @@ export default function ProjectDetailScreen() {
       {/* Edit Project Modal */}
       <Modal visible={showEditModal} animationType="slide" transparent onRequestClose={() => setShowEditModal(false)}>
         <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[85%]">
+          <View
+            style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
+            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[85%]"
+          >
             <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
               <View className="flex-row items-center gap-2">
                 <View className="w-8 h-8 rounded-lg bg-primary/10 items-center justify-center">
@@ -804,7 +808,10 @@ export default function ProjectDetailScreen() {
       {/* Assign Crew Modal */}
       <Modal visible={showAssignModal} animationType="slide" transparent onRequestClose={() => setShowAssignModal(false)}>
         <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[80%]">
+          <View
+            style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
+            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[80%]"
+          >
             <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
               <View className="flex-row items-center gap-2">
                 <View className="w-8 h-8 rounded-lg bg-primary/10 items-center justify-center">
@@ -902,7 +909,10 @@ export default function ProjectDetailScreen() {
       {/* Add Site Update Modal */}
       <Modal visible={showUpdateModal} animationType="slide" transparent onRequestClose={() => setShowUpdateModal(false)}>
         <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border">
+          <View
+            style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
+            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border"
+          >
             {/* Header */}
             <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
               <View className="flex-row items-center gap-2">

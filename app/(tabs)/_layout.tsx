@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   LayoutDashboard,
   HardHat,
@@ -17,6 +18,8 @@ const INACTIVE_COLOR = "#94A3B8";
  *   Dashboard → Projects → Attendance → Workers → Reports
  */
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -29,8 +32,9 @@ export default function TabLayout() {
           backgroundColor: "#FFFFFF",
           borderTopColor: "#E2E8F0",
           borderTopWidth: 1,
-          paddingTop: 4,
-          height: 56,
+          paddingTop: 6,
+          paddingBottom: insets.bottom > 0 ? insets.bottom + 4 : 8,
+          height: 56 + (insets.bottom > 0 ? insets.bottom : 8),
         },
         tabBarLabelStyle: {
           fontSize: 11,

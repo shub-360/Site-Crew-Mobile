@@ -10,7 +10,7 @@ import {
   Linking,
   TextInput,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -45,6 +45,7 @@ export default function WorkerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
+  const insets = useSafeAreaInsets();
   const now = new Date();
 
   const [year, setYear] = useState(now.getFullYear());
@@ -549,7 +550,10 @@ export default function WorkerDetailScreen() {
         onRequestClose={() => setShowPaymentModal(false)}
       >
         <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border">
+          <View
+            style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
+            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border"
+          >
             {/* Header */}
             <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
               <View className="flex-row items-center gap-2">
@@ -637,7 +641,10 @@ export default function WorkerDetailScreen() {
         onRequestClose={() => setShowEditModal(false)}
       >
         <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[85%]">
+          <View
+            style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
+            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[85%]"
+          >
             {/* Header */}
             <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
               <View className="flex-row items-center gap-2">

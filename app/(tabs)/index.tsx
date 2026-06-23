@@ -66,9 +66,9 @@ export default function DashboardScreen() {
   const isLoading = loadingK || loadingAct;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-slate-50">
       <ScrollView
-        contentContainerClassName="px-4 py-6 pb-12"
+        contentContainerClassName="px-4 py-6 pb-32"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E3A5F"]} />
         }

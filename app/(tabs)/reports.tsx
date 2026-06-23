@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useFocusEffect } from "expo-router";
 import {
@@ -38,6 +38,7 @@ const MONTHS = [
 
 export default function ReportsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -151,9 +152,9 @@ export default function ReportsScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-slate-50">
       <ScrollView
-        contentContainerClassName="px-4 py-5 gap-4"
+        contentContainerClassName="px-4 py-5 pb-32 gap-4"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E3A5F"]} />
         }

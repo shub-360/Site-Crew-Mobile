@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
@@ -59,6 +59,7 @@ const STATUS_LABEL: Record<ProjectStatus, string> = {
 
 export default function ProjectsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -229,7 +230,7 @@ export default function ProjectsScreen() {
   }, [router]);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-slate-50">
       {/* Search Header */}
       <View className="px-4 pt-4 pb-2 bg-white border-b border-slate-100 flex-row gap-2 items-center">
         <View className="flex-1 flex-row items-center bg-slate-100 px-3 h-10 rounded-xl">
@@ -294,7 +295,7 @@ export default function ProjectsScreen() {
         <FlatList
           data={filteredProjects}
           keyExtractor={(p) => p.id}
-          contentContainerClassName="px-4 py-4 pb-20"
+          contentContainerClassName="px-4 py-4 pb-32"
           refreshing={isLoading}
           onRefresh={refetch}
           ListEmptyComponent={
@@ -311,7 +312,10 @@ export default function ProjectsScreen() {
       {/* Add Project Modal */}
       <Modal visible={showAddModal} animationType="slide" transparent onRequestClose={closeModal}>
         <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[85%]">
+          <View
+            style={{ paddingBottom: Math.max(24, insets.bottom + 16) }}
+            className="bg-white rounded-t-3xl p-6 gap-4 border-t border-border max-h-[85%]"
+          >
             {/* Header */}
             <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
               <View className="flex-row items-center gap-2">
